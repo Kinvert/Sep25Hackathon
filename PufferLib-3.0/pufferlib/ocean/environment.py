@@ -158,6 +158,7 @@ MAKE_FUNCTIONS = {
     'whisker_racer': 'WhiskerRacer',
     'spaces': make_spaces,
     'multiagent': make_multiagent,
+    'drone_pickplace': 'DronePickPlace',
 }
 
 def env_creator(name='squared', *args, **kwargs):
