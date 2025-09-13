@@ -30,7 +30,8 @@ class DronePickPlace(pufferlib.PufferEnv):
                 num_drones=1, num_objects=1, num_targets=1,
                 world_size=2.0, max_height=1.5, max_steps=500,
                 reward_approach=0.01, reward_complete=1.0, reward_grasp=1.0,
-                reward_place=1.0, penalty_no_progress=-0.1, penalty_time=-0.001,
+                reward_place=1.0, penalty_crash=-1.0, penalty_no_progress=-0.1,
+                penalty_time=-0.001,
                 buf=None, seed=0, **kwargs):
 
         obs_per_drone = 45
@@ -65,6 +66,7 @@ class DronePickPlace(pufferlib.PufferEnv):
         self.reward_complete = reward_complete
         self.reward_grasp = reward_grasp
         self.reward_place = reward_place
+        self.penalty_crash = penalty_crash
         self.penalty_no_progress = penalty_no_progress
         self.penalty_time = penalty_time
 
@@ -83,6 +85,7 @@ class DronePickPlace(pufferlib.PufferEnv):
             reward_complete=reward_complete,
             reward_grasp=reward_grasp,
             reward_place=reward_place,
+            penalty_crash=penalty_crash,
             penalty_no_progress=penalty_no_progress,
             penalty_time=penalty_time
         )

@@ -26,6 +26,7 @@ const uint8_t STATE_APPROACHING = 1;
 const uint8_t STATE_GRASPING = 2;
 const uint8_t STATE_TRANSPORTING = 3;
 const uint8_t STATE_PLACING = 4;
+const uint8_t STATE_CRASHED = 5;
 
 typedef struct {
     float perf; // 0-1 normalized performance metric
@@ -100,6 +101,7 @@ typedef struct {
     float reward_complete;
     float reward_grasp;
     float reward_place;
+    float penalty_crash;
     float penalty_no_progress;
     float penalty_time;
 
@@ -135,13 +137,76 @@ float distance3d(float x1, float y1, float z1, float x2, float y2, float z2) {
     return sqrtf(dx*dx + dy*dy + dz*dz);
 }
 
+void check_and_handle_crashes(DronePickPlace* env) {
+    for (int d = 0; d < env->num_drones; d++) {
+        Drone* drone = &env->drones[d];
+        if (drone->state == STATE_CRASHED) {
+            continue;
+        }
+
+        if (drone->z < 0.01f) {
+            drone->state = STATE_CRASHED;
+            drone->z = 0.0f;
+            drone->vx = drone->vy = drone->vz = 0.0f;
+            drone->wx = drone->wy = drone->wz = 0.0f;
+            env->rewards[d] += env->penalty_crash;
+        }
+    }
+
+    for (int o = 0; o < env->num_objects; o++) {
+        Object* obj = &env->objects[o];
+
+        if (!obj->is_grasped || obj->is_placed) {
+            continue;
+        }
+
+        if (obj->z < 0.01f) {
+            for (int d = 0; d < env->num_drones; d++) {
+                Drone* drone = &env->drones[d];
+
+                if (drone->state == STATE_TRANSPORTING && drone->gripper_open < 0.5f) {
+                    float dist = distance3d(drone->x, drone->y, drone->z,
+                                          obj->x, obj->y, obj->z);
+                    if (dist < env->grip_distance) {
+                        drone->state = STATE_CRASHED;
+                        drone->z = 0.0f;
+                        drone->vx = drone->vy = drone->vz = 0.0f;
+                        drone->wx = drone->wy = drone->wz = 0.0f;
+                        env->rewards[d] += env->penalty_crash;
+
+                        obj->is_grasped = 0;
+                        obj->z = 0.1f;
+                        obj->vx = obj->vy = obj->vz = 0.0f;
+
+                        break;
+                    }
+                }
+            }
+        }
+    }
+}
+
+bool all_drones_crashed(DronePickPlace* env) {
+    for (int d = 0; d < env->num_drones; d++) {
+        if (env->drones[d].state != STATE_CRASHED) {
+            return false;
+        }
+    }
+    return true;
+}
+
 void update_drone_physics(DronePickPlace* env, int drone_idx) {
     Drone* drone = &env->drones[drone_idx];
+
+    if (drone->state == STATE_CRASHED) {
+        return;
+    }
+
     int action = env->actions[drone_idx];
-    
+
     float move_force = 10.0f;
     float rotate_speed = 2.5f;
-    
+
     switch(action) {
         case MOVE_FORWARD:  // +Y direction (absolute)
             drone->vy += move_force * env->dt;
@@ -176,14 +241,14 @@ void update_drone_physics(DronePickPlace* env, int drone_idx) {
             drone->gripper_open = 0.0f;
             break;
     }
-    
+
     float drag = 0.98f;
     drone->vx *= drag;
     drone->vy *= drag;
     drone->vz *= drag;
 
     drone->vz += env->gravity * env->dt * 0.05f;
-    
+
     // Clamp velocities
     float speed = sqrtf(drone->vx*drone->vx + drone->vy*drone->vy + drone->vz*drone->vz);
     if (speed > env->max_velocity) {
@@ -199,11 +264,11 @@ void update_drone_physics(DronePickPlace* env, int drone_idx) {
 
     drone->x = fmaxf(0, fminf(env->world_size, drone->x));
     drone->y = fmaxf(0, fminf(env->world_size, drone->y));
-    drone->z = fmaxf(0.05f, fminf(env->max_height, drone->z));  // Allow drone to go lower
+    drone->z = fmaxf(0.05f, fminf(env->max_height, drone->z));
 
     while (drone->yaw > 3.14159f) drone->yaw -= 2 * 3.14159f; // todo potential bug
     while (drone->yaw < -3.14159f) drone->yaw += 2 * 3.14159f; // todo potential bug
-    
+
     // Update quaternion from Euler angles (simplified - only yaw for now)
     drone->qw = cosf(drone->yaw / 2.0f);
     drone->qx = 0.0f;
@@ -566,6 +631,7 @@ void c_step(DronePickPlace* env) {
         }
     }
 
+    check_and_handle_crashes(env);
     update_grasping(env);
     update_placement(env);
 
@@ -693,7 +759,9 @@ void c_step(DronePickPlace* env) {
         }
     }
 
-    if (all_placed || env->current_step >= env->max_steps) {
+    bool all_crashed = all_drones_crashed(env);
+
+    if (all_placed || all_crashed || env->current_step >= env->max_steps) {
         for (int d = 0; d < env->num_drones; d++) {
             env->terminals[d] = 1;
             if (all_placed) {
@@ -805,6 +873,7 @@ void c_render(DronePickPlace* env) {
             case STATE_GRASPING: state_str = "GRASPING"; break;
             case STATE_TRANSPORTING: state_str = "TRANSPORTING"; break;
             case STATE_PLACING: state_str = "PLACING"; break;
+            case STATE_CRASHED: state_str = "CRASHED"; break;
         }
         DrawText(TextFormat("State: %s", state_str), 10, 85, 20, SKYBLUE);
 
@@ -813,6 +882,7 @@ void c_render(DronePickPlace* env) {
             Object* obj = &env->objects[0];
             DrawText(TextFormat("Object: %s", obj->is_grasped ? "GRASPED" : "FREE"), 10, 110, 20, GREEN);
         }
+        DrawText(TextFormat("Z %.3f", drone->z), 10, 135, 20, GREEN);
     }
 
     EndDrawing();
