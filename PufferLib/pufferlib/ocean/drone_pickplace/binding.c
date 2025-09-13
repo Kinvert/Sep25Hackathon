@@ -15,6 +15,7 @@ static int my_init(Env* env, PyObject* args, PyObject* kwargs) {
     env->reward_complete = unpack(kwargs, "reward_complete");
     env->reward_grasp = unpack(kwargs, "reward_grasp");
     env->reward_place = unpack(kwargs, "reward_place");
+    env->penalty_crash = unpack(kwargs, "penalty_crash");
     env->penalty_no_progress = unpack(kwargs, "penalty_no_progress");
     env->penalty_time = unpack(kwargs, "penalty_time");
 
