@@ -418,11 +418,43 @@ class PuffeRL:
 
             # Learn on accumulated minibatches
             profile('learn', epoch)
+
+            # Check for NaN in loss before backward
+            if torch.isnan(loss):
+                print(f"Warning: NaN loss detected, skipping backward pass")
+                self.optimizer.zero_grad()
+                # Reduce learning rate on NaN
+                for g in self.optimizer.param_groups:
+                    g['lr'] *= 0.5
+                print(f"Reduced learning rate to {self.optimizer.param_groups[0]['lr']}")
+                continue
+
             loss.backward()
+
+            # Check for NaN in gradients
+            has_nan_grad = False
+            for name, param in self.policy.named_parameters():
+                if param.grad is not None and torch.isnan(param.grad).any():
+                    print(f"Warning: NaN gradient in {name}")
+                    has_nan_grad = True
+                    param.grad = torch.nan_to_num(param.grad, nan=0.0)
+
             if (mb + 1) % self.accumulate_minibatches == 0:
-                torch.nn.utils.clip_grad_norm_(self.policy.parameters(), config['max_grad_norm'])
+                # More aggressive gradient clipping for continuous actions
+                policy_obj = self.policy.policy if hasattr(self.policy, 'policy') else self.policy
+                if hasattr(policy_obj, 'is_continuous') and policy_obj.is_continuous:
+                    torch.nn.utils.clip_grad_norm_(self.policy.parameters(), min(config['max_grad_norm'], 0.5))
+                else:
+                    torch.nn.utils.clip_grad_norm_(self.policy.parameters(), config['max_grad_norm'])
+
                 self.optimizer.step()
                 self.optimizer.zero_grad()
+
+                # Check for NaN in weights after update
+                policy_obj = self.policy.policy if hasattr(self.policy, 'policy') else self.policy
+                if hasattr(policy_obj, 'check_and_fix_weights'):
+                    if policy_obj.check_and_fix_weights():
+                        print("Warning: NaN in weights after optimizer step, weights reinitialized")
 
         # Reprioritize experience
         profile('train_misc', epoch)
