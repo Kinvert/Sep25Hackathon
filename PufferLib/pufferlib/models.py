@@ -83,7 +83,7 @@ class Default(nn.Module):
 
         # Check for NaN in observations and replace with zeros
         if torch.isnan(observations).any():
-            print(f"Warning: NaN detected in observations, replacing with zeros")
+            #print(f"Warning: NaN detected in observations, replacing with zeros")
             observations = torch.nan_to_num(observations, nan=0.0)
 
         # Clamp observations to prevent extreme values
@@ -96,7 +96,7 @@ class Default(nn.Module):
         nan_found = False
         for name, param in self.named_parameters():
             if torch.isnan(param).any():
-                print(f"Warning: NaN found in weight {name}, reinitializing")
+                #print(f"Warning: NaN found in weight {name}, reinitializing")
                 nan_found = True
                 # Reinitialize the parameter
                 if 'decoder_logstd' in name:
@@ -116,7 +116,7 @@ class Default(nn.Module):
         Assumes no time dimension (handled by LSTM wrappers).'''
         # Check for NaN in hidden states first
         if torch.isnan(hidden).any():
-            print(f"Warning: NaN in hidden states before decode, replacing with zeros")
+            #print(f"Warning: NaN in hidden states before decode, replacing with zeros")
             hidden = torch.nan_to_num(hidden, nan=0.0)
             # Also check weights when NaN is detected
             self.check_and_fix_weights()
@@ -131,7 +131,7 @@ class Default(nn.Module):
 
             # Check for NaN before continuing
             if torch.isnan(mean).any():
-                print(f"Warning: NaN in mean after decoder, checking weights")
+                #print(f"Warning: NaN in mean after decoder, checking weights")
                 self.check_and_fix_weights()
                 # Retry with fixed weights
                 mean = self.decoder_mean(hidden)
@@ -147,7 +147,7 @@ class Default(nn.Module):
 
             # Final NaN check and replace with safe values
             if torch.isnan(mean).any() or torch.isnan(std).any():
-                print(f"Warning: NaN detected in policy - mean: {torch.isnan(mean).any()}, std: {torch.isnan(std).any()}")
+                #print(f"Warning: NaN detected in policy - mean: {torch.isnan(mean).any()}, std: {torch.isnan(std).any()}")
                 mean = torch.nan_to_num(mean, nan=0.0)
                 std = torch.nan_to_num(std, nan=0.5)
 
@@ -159,7 +159,7 @@ class Default(nn.Module):
 
         # Check values for NaN
         if torch.isnan(values).any():
-            print(f"Warning: NaN in value output, replacing with zeros")
+            #print(f"Warning: NaN in value output, replacing with zeros")
             values = torch.nan_to_num(values, nan=0.0)
 
         return logits, values
@@ -256,10 +256,10 @@ class LSTMWrapper(nn.Module):
 
         # Check for NaN after LSTM and replace with zeros
         if torch.isnan(hidden).any():
-            print(f"Warning: NaN detected after LSTM, replacing with zeros")
+            #print(f"Warning: NaN detected after LSTM, replacing with zeros")
             hidden = torch.nan_to_num(hidden, nan=0.0)
         if torch.isnan(lstm_h).any() or torch.isnan(lstm_c).any():
-            print(f"Warning: NaN detected in LSTM state, resetting")
+            #print(f"Warning: NaN detected in LSTM state, resetting")
             lstm_h = torch.nan_to_num(lstm_h, nan=0.0)
             lstm_c = torch.nan_to_num(lstm_c, nan=0.0)
 
