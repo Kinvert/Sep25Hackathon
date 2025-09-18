@@ -418,11 +418,43 @@ class PuffeRL:
 
             # Learn on accumulated minibatches
             profile('learn', epoch)
+
+            # Check for NaN in loss before backward
+            if torch.isnan(loss):
+                #print(f"Warning: NaN loss detected, skipping backward pass")
+                self.optimizer.zero_grad()
+                # Reduce learning rate on NaN
+                for g in self.optimizer.param_groups:
+                    g['lr'] *= 0.5
+                #print(f"Reduced learning rate to {self.optimizer.param_groups[0]['lr']}")
+                continue
+
             loss.backward()
+
+            # Check for NaN in gradients
+            has_nan_grad = False
+            for name, param in self.policy.named_parameters():
+                if param.grad is not None and torch.isnan(param.grad).any():
+                    #print(f"Warning: NaN gradient in {name}")
+                    has_nan_grad = True
+                    param.grad = torch.nan_to_num(param.grad, nan=0.0)
+
             if (mb + 1) % self.accumulate_minibatches == 0:
-                torch.nn.utils.clip_grad_norm_(self.policy.parameters(), config['max_grad_norm'])
+                # More aggressive gradient clipping for continuous actions
+                policy_obj = self.policy.policy if hasattr(self.policy, 'policy') else self.policy
+                if hasattr(policy_obj, 'is_continuous') and policy_obj.is_continuous:
+                    torch.nn.utils.clip_grad_norm_(self.policy.parameters(), min(config['max_grad_norm'], 0.5))
+                else:
+                    torch.nn.utils.clip_grad_norm_(self.policy.parameters(), config['max_grad_norm'])
+
                 self.optimizer.step()
                 self.optimizer.zero_grad()
+
+                # Check for NaN in weights after update
+                policy_obj = self.policy.policy if hasattr(self.policy, 'policy') else self.policy
+                if hasattr(policy_obj, 'check_and_fix_weights'):
+                    if policy_obj.check_and_fix_weights():
+                        #print("Warning: NaN in weights after optimizer step, weights reinitialized")
 
         # Reprioritize experience
         profile('train_misc', epoch)
@@ -634,7 +666,7 @@ class PuffeRL:
         with console.capture() as capture:
             console.print(dashboard)
 
-        print('\033[0;0H' + capture.get())
+        #print('\033[0;0H' + capture.get())
 
 def compute_puff_advantage(values, rewards, terminals,
         ratio, advantages, gamma, gae_lambda, vtrace_rho_clip, vtrace_c_clip):
@@ -874,11 +906,11 @@ def train(env_name, args=None, vecenv=None, policy=None, logger=None):
     # Assume TorchRun DDP is used if LOCAL_RANK is set
     if 'LOCAL_RANK' in os.environ:
         world_size = int(os.environ.get('WORLD_SIZE', 1))
-        print("World size", world_size)
+        #print("World size", world_size)
         master_addr = os.environ.get('MASTER_ADDR', 'localhost')
         master_port = os.environ.get('MASTER_PORT', '29500')
         local_rank = int(os.environ["LOCAL_RANK"])
-        print(f"rank: {local_rank}, MASTER_ADDR={master_addr}, MASTER_PORT={master_port}")
+        #print(f"rank: {local_rank}, MASTER_ADDR={master_addr}, MASTER_PORT={master_port}")
         torch.cuda.set_device(local_rank)
         os.environ["CUDA_VISIBLE_DEVICES"] = str(local_rank)
 
@@ -968,7 +1000,7 @@ def eval(env_name, args=None, vecenv=None, policy=None):
 
         # Screenshot Ocean envs with F12, gifs with control + F12
         if driver.render_mode == 'ansi':
-            print('\033[0;0H' + render + '\n')
+            #print('\033[0;0H' + render + '\n')
             time.sleep(1/args['fps'])
         elif driver.render_mode == 'rgb_array':
             pass
@@ -1043,7 +1075,7 @@ def profile(args=None, env_name=None, vecenv=None, policy=None):
                 stats = pufferl.evaluate()
                 pufferl.train()
 
-    print(prof.key_averages().table(sort_by='cuda_time_total', row_limit=10))
+    #print(prof.key_averages().table(sort_by='cuda_time_total', row_limit=10))
     prof.export_chrome_trace("trace.json")
 
 def export(args=None, env_name=None, vecenv=None, policy=None):
@@ -1054,12 +1086,12 @@ def export(args=None, env_name=None, vecenv=None, policy=None):
     weights = []
     for name, param in policy.named_parameters():
         weights.append(param.data.cpu().numpy().flatten())
-        print(name, param.shape, param.data.cpu().numpy().ravel()[0])
+        #print(name, param.shape, param.data.cpu().numpy().ravel()[0])
     
     path = f'{args["env_name"]}_weights.bin'
     weights = np.concatenate(weights)
     weights.tofile(path)
-    print(f'Saved {len(weights)} weights to {path}')
+    #print(f'Saved {len(weights)} weights to {path}')
 
 def autotune(args=None, env_name=None, vecenv=None, policy=None):
     package = args['package']
