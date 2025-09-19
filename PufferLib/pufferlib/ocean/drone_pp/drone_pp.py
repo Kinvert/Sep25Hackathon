@@ -29,7 +29,7 @@ class DronePP(pufferlib.PufferEnv):
         grip_k_decay=0.12,
 
         render_mode=None,
-        report_interval=1024,
+        report_interval=2048,
         buf=None,
         seed=0,
     ):

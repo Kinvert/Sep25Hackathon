@@ -480,8 +480,33 @@ float compute_reward(DronePP* env, Drone *agent, bool collision) {
 }
 
 void reset_pp2(DronePP* env, Drone *agent, int idx) {
-    agent->box_pos = (Vec3){rndf(-MARGIN_X, MARGIN_X), rndf(-MARGIN_Y, MARGIN_Y), -GRID_Z + 0.5f};
-    agent->drop_pos = (Vec3){rndf(-MARGIN_X, MARGIN_X), rndf(-MARGIN_Y, MARGIN_Y), -GRID_Z + 0.5f};
+    // Truck location: center-left of environment
+    // Packages spawn on truck bed (elevated slightly)
+    float truck_x = -15.0f;
+    float truck_y_min = -10.0f;
+    float truck_y_max = 10.0f;
+    float truck_z = -GRID_Z + 1.0f; // Truck bed height
+
+    // Spawn package on truck with some randomization along truck bed
+    agent->box_pos = (Vec3){
+        truck_x + rndf(-2.0f, 2.0f),  // Small variation along truck length
+        rndf(truck_y_min, truck_y_max),  // Along truck width
+        truck_z
+    };
+
+    // House locations: distributed on right side of environment
+    // Create a grid of "houses" for delivery destinations
+    int num_houses = 8;
+    float house_x_positions[] = {10.0f, 10.0f, 10.0f, 10.0f, 20.0f, 20.0f, 20.0f, 20.0f};
+    float house_y_positions[] = {-20.0f, -10.0f, 0.0f, 10.0f, -20.0f, -10.0f, 0.0f, 10.0f};
+
+    // Assign a random house as delivery destination
+    int house_idx = idx % num_houses;  // Each drone gets assigned to a house
+    agent->drop_pos = (Vec3){
+        house_x_positions[house_idx] + rndf(-1.0f, 1.0f),  // Small variation at house
+        house_y_positions[house_idx] + rndf(-1.0f, 1.0f),
+        -GRID_Z + 0.5f  // Ground level at house
+    };
     agent->gripping = false;
     agent->delivered = false;
     agent->grip_height = 0.0f;
@@ -1050,12 +1075,46 @@ void c_render(DronePP *env) {
     }
 
     if (env->task == TASK_PP2) {
+        // Draw truck (flatbed)
+        float truck_x = -15.0f;
+        float truck_y = 0.0f;
+        float truck_z = -GRID_Z + 0.5f;
+        // Truck bed
+        DrawCube((Vector3){truck_x, truck_y, truck_z}, 6.0f, 24.0f, 1.0f, DARKGRAY);
+        // Truck cab
+        DrawCube((Vector3){truck_x - 4.0f, truck_y, truck_z + 1.0f}, 2.0f, 4.0f, 2.0f, GRAY);
+
+        // Draw houses as green platforms with red roofs
+        int num_houses = 8;
+        float house_x_positions[] = {10.0f, 10.0f, 10.0f, 10.0f, 20.0f, 20.0f, 20.0f, 20.0f};
+        float house_y_positions[] = {-20.0f, -10.0f, 0.0f, 10.0f, -20.0f, -10.0f, 0.0f, 10.0f};
+
+        for (int h = 0; h < num_houses; h++) {
+            // House base/lawn
+            DrawCube((Vector3){house_x_positions[h], house_y_positions[h], -GRID_Z + 0.25f},
+                    4.0f, 4.0f, 0.5f, GREEN);
+            // House structure
+            DrawCube((Vector3){house_x_positions[h], house_y_positions[h], -GRID_Z + 1.5f},
+                    3.0f, 3.0f, 2.0f, BEIGE);
+            // Roof
+            DrawCube((Vector3){house_x_positions[h], house_y_positions[h], -GRID_Z + 2.75f},
+                    3.5f, 3.5f, 0.5f, (Color){150, 50, 50, 255});
+        }
+
+        // Draw packages and their target drop zones
         for (int i = 0; i < env->num_agents; i++) {
             Drone *agent = &env->agents[i];
             Vec3 render_pos = agent->box_pos;
-            DrawCube((Vector3){render_pos.x, render_pos.y, render_pos.z}, 0.4f, 0.4f, 0.4f, BROWN);
-            DrawCube((Vector3){agent->drop_pos.x, agent->drop_pos.y, agent->drop_pos.z}, 0.5f, 0.5f, 0.1f, YELLOW);
-            //DrawSphere((Vector3){agent->hidden_pos.x, agent->hidden_pos.y, agent->hidden_pos.z}, 0.05f, YELLOW);
+            // Package (DHL style - yellow/red)
+            DrawCube((Vector3){render_pos.x, render_pos.y, render_pos.z}, 0.4f, 0.4f, 0.4f,
+                    (Color){255, 200, 0, 255});  // DHL yellow
+            // Draw small DHL logo indicator (red stripe)
+            DrawCube((Vector3){render_pos.x, render_pos.y, render_pos.z + 0.21f}, 0.35f, 0.35f, 0.02f, RED);
+
+            // Delivery zone marker at house (pulsing indicator)
+            float pulse = 0.8f + 0.2f * sinf(env->tick * 0.1f);
+            DrawCube((Vector3){agent->drop_pos.x, agent->drop_pos.y, agent->drop_pos.z},
+                    2.0f * pulse, 2.0f * pulse, 0.05f, (Color){255, 255, 0, 100});
         }
     }
 

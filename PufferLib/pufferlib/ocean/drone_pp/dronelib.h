@@ -16,7 +16,7 @@
 #define WIDTH 1080
 #define HEIGHT 720
 #define TRAIL_LENGTH 50
-#define HORIZON 1024
+#define HORIZON 2048
 
 // Physical constants for the drone
 #define BASE_MASS 1.0f       // kg
