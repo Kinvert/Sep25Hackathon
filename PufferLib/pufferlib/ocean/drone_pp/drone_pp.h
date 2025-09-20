@@ -495,11 +495,11 @@ void reset_pp2(DronePP* env, Drone *agent, int idx) {
     agent->hidden_vel = (Vec3){0.0f, 0.0f, 0.0f};
 
     float drone_capacity = agent->params.arm_len * 4.0f;
-    agent->box_size = rndf(0.05f, fmaxf(drone_capacity, 0.1f));
+    agent->box_size = rndf(0.3f, fmaxf(fminf(drone_capacity, 1.0f), 0.3f));
 
     float box_volume = agent->box_size * agent->box_size * agent->box_size;
-    agent->box_base_mass = env->box_base_density * box_volume * rndf(0.1f, 5.0f);
-    agent->box_mass = env->box_k * agent->box_base_mass;
+    agent->box_base_mass = env->box_base_density * box_volume * rndf(0.05f, 2.0f);
+    agent->box_mass = fminf(env->box_k * agent->box_base_mass, agent->box_mass_max);
 
     agent->base_mass = agent->params.mass;
     agent->base_ixx = agent->params.ixx;
@@ -678,6 +678,8 @@ void c_step(DronePP *env) {
                 float xy_dist_to_box = sqrtf(powf(agent->state.pos.x - agent->box_pos.x, 2) +
                                             powf(agent->state.pos.y - agent->box_pos.y, 2));
                 float z_dist_above_box = agent->state.pos.z - agent->box_pos.z;
+
+                if (xy_dist_to_box > 2.0f && agent->state.pos.z < MARGIN_Z * 0.5f) reward += -0.1f;
 
                 // Phase 1 Box Hover
                 if (!agent->hovering_pickup) {

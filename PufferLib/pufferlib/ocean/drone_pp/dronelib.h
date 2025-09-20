@@ -235,6 +235,7 @@ typedef struct {
     float max_omega; // rad/s
     float k_mot; // s
     float j_mot; // kgm^2
+    float max_thrust; // N
 } Params;
 
 typedef struct {
@@ -288,6 +289,7 @@ typedef struct {
     float box_size;
     float box_base_mass;
     float box_mass;
+    float box_mass_max;
     bool box_physics_on;
 } Drone;
 
@@ -330,6 +332,10 @@ void init_drone(Drone* drone, float size, float dr) {
 
     drone->params.max_vel = BASE_MAX_VEL;
     drone->params.max_omega = BASE_MAX_OMEGA;
+    drone->params.max_thrust = 4.0f * drone->params.k_thrust * powf(drone->params.max_rpm, 2.0f);
+
+    float max_total_mass = (0.5f * drone->params.max_thrust) / drone->params.gravity;
+    drone->box_mass_max = max_total_mass - drone->params.mass;
 
     drone->params.k_mot = BASE_K_MOT * rndf(1.0f - dr, 1.0f + dr);
     drone->params.j_mot = BASE_J_MOT * I_scale * rndf(1.0f - dr, 1.0f + dr);
