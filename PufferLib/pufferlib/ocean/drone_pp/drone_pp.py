@@ -11,22 +11,27 @@ class DronePP(pufferlib.PufferEnv):
         num_drones=64,
         max_rings=5,
 
-        reward_min_dist=1.6,
-        reward_max_dist=77.0,
+        reward_min_dist=1.3159451723909112,
+        reward_max_dist=83.14960592300233,
         dist_decay=0.15,
 
-        w_position=1.13,
-        w_velocity=0.15,
-        w_stability=2.0,
-        w_approach=2.2,
-        w_hover=1.5,
+        w_position=1.2303854103933083,
+        w_velocity=0.12632002850721588,
+        w_stability=1.8328041440802467,
+        w_approach=2.4493223157596984,
+        w_hover=1.6429730342663187,
 
-        pos_const=0.63,
-        pos_penalty=0.03,
+        pos_const=0.6233603728023545,
+        pos_penalty=0.03827543428980447,
 
         grip_k_min=1.0,
-        grip_k_max=15.0,
-        grip_k_decay=0.095,
+        grip_k_max=17.887758597919266,
+        grip_k_decay=0.09049941256843744,
+
+        box_base_density=50.0,
+        box_k_growth=0.02,
+
+        low_alt_penalty=0.005,
 
         render_mode=None,
         report_interval=1024,
@@ -79,7 +84,12 @@ class DronePP(pufferlib.PufferEnv):
 
                 grip_k_min=grip_k_min,
                 grip_k_max=grip_k_max,
-                grip_k_decay=grip_k_decay
+                grip_k_decay=grip_k_decay,
+
+                box_base_density=box_base_density,
+                box_k_growth=box_k_growth,
+
+                low_alt_penalty=low_alt_penalty
             ))
 
         self.c_envs = binding.vectorize(*c_envs)
