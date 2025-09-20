@@ -477,8 +477,8 @@ float compute_reward(DronePP* env, Drone *agent, bool collision) {
 }
 
 void reset_pp2(DronePP* env, Drone *agent, int idx) {
-    agent->box_pos = (Vec3){rndf(-MARGIN_X, MARGIN_X), rndf(-MARGIN_Y, MARGIN_Y), -GRID_Z + 0.5f};
-    agent->drop_pos = (Vec3){rndf(-MARGIN_X, MARGIN_X), rndf(-MARGIN_Y, MARGIN_Y), -GRID_Z + 0.5f};
+    agent->box_pos = (Vec3){rndf(-MARGIN_X, MARGIN_X), rndf(-MARGIN_Y, MARGIN_Y), rndf(-MARGIN_Z, -MARGIN_Z + 5.0f)};
+    agent->drop_pos = (Vec3){rndf(-MARGIN_X, MARGIN_X), rndf(-MARGIN_Y, MARGIN_Y), rndf(-MARGIN_Z, -MARGIN_Z + 5.0f)};
     agent->gripping = false;
     agent->delivered = false;
     agent->grip_height = 0.0f;
@@ -498,7 +498,7 @@ void reset_pp2(DronePP* env, Drone *agent, int idx) {
     agent->box_size = rndf(0.05f, fmaxf(drone_capacity, 0.1f));
 
     float box_volume = agent->box_size * agent->box_size * agent->box_size;
-    agent->box_base_mass = env->box_base_density * box_volume * rndf(0.5f, 2.0f);
+    agent->box_base_mass = env->box_base_density * box_volume * rndf(0.1f, 5.0f);
     agent->box_mass = env->box_k * agent->box_base_mass;
 
     agent->base_mass = agent->params.mass;
