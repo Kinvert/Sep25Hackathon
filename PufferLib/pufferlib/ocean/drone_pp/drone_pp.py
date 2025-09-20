@@ -31,7 +31,7 @@ class DronePP(pufferlib.PufferEnv):
         box_base_density=50.0,
         box_k_growth=0.02,
 
-        low_alt_penalty=0.1,
+        low_alt_penalty=0.005,
 
         render_mode=None,
         report_interval=1024,

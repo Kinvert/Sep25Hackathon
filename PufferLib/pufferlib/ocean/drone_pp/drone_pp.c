@@ -141,7 +141,7 @@ int main() {
     env->box_base_density = 50.0;
     env->box_k_growth = 0.02;
 
-    env->low_alt_penalty = 0.1;
+    env->low_alt_penalty = 0.005;
 
     env->task = TASK_ORBIT;
     init(env);
