@@ -111,6 +111,8 @@ typedef struct {
     float box_k_max;
     float box_k_growth;
 
+    float low_alt_penalty;
+
     Client *client;
 } DronePP;
 
@@ -679,7 +681,7 @@ void c_step(DronePP *env) {
                                             powf(agent->state.pos.y - agent->box_pos.y, 2));
                 float z_dist_above_box = agent->state.pos.z - agent->box_pos.z;
 
-                if (xy_dist_to_box > 2.0f && agent->state.pos.z < MARGIN_Z * 0.5f) reward += -0.1f;
+                if (xy_dist_to_box > 2.0f && agent->state.pos.z < MARGIN_Z * 0.5f) reward += -env->low_alt_penalty;
 
                 // Phase 1 Box Hover
                 if (!agent->hovering_pickup) {
@@ -733,6 +735,8 @@ void c_step(DronePP *env) {
                 float xy_dist_to_drop = sqrtf(powf(agent->state.pos.x - agent->drop_pos.x, 2) +
                                             powf(agent->state.pos.y - agent->drop_pos.y, 2));
                 float z_dist_above_drop = agent->state.pos.z - agent->drop_pos.z;
+
+                if (xy_dist_to_drop > 2.0f && agent->state.pos.z < MARGIN_Z * 0.5f) reward += -env->low_alt_penalty;
 
                 if (!agent->box_physics_on && agent->state.vel.z > 0.3f) {
                     update_gripping_physics(agent);

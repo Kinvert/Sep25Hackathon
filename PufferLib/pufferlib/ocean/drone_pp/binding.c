@@ -27,6 +27,8 @@ static int my_init(Env *env, PyObject *args, PyObject *kwargs) {
     env->box_base_density = unpack(kwargs, "box_base_density");
     env->box_k_growth = unpack(kwargs, "box_k_growth");
 
+    env->low_alt_penalty = unpack(kwargs, "low_alt_penalty");
+
     init(env);
     return 0;
 }
