@@ -716,10 +716,10 @@ void c_step(DronePP *env) {
                     ) {
                         if (k < 1.01 && env->box_k > 0.99f) {
                             agent->perfect_grip = true;
+                            env->log.perfect_grip += 1.0f;
                             agent->color = (Color){100, 100, 255, 255}; // Light Blue
                         }
                         agent->gripping = true;
-                        env->log.perfect_grip += 1.0f;
                         reward += 1.0f;
                         random_bump(agent);
                     } else if (dist_to_hidden > 0.4f || speed > 0.4f) {
