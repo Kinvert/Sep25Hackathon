@@ -715,6 +715,7 @@ void c_step(DronePP *env) {
                             agent->color = (Color){100, 100, 255, 255}; // Light Blue
                         }
                         agent->gripping = true;
+                        env->log.perfect_grip += 1.0f;
                         reward += 1.0f;
                         random_bump(agent);
                     } else if (dist_to_hidden > 0.4f || speed > 0.4f) {
@@ -763,6 +764,7 @@ void c_step(DronePP *env) {
                         agent->has_delivered = true;
                         if (k < 1.01f && agent->perfect_grip  && env->box_k > 0.99f) {
                             agent->perfect_deliv = true;
+                            env->log.perfect_deliv += 1.0;
                             agent->color = (Color){0, 255, 0, 255}; // Green
                         }
                         reset_pp2(env, agent, i);
@@ -782,8 +784,8 @@ void c_step(DronePP *env) {
                 if (a->descent_pickup) env->log.de_pickup += 1.0f;
                 if (a->gripping) env->log.gripping += 1.0f;
                 if (a->delivered) env->log.delivered += 1.0f;
-                if (a->perfect_grip && env->grip_k < 1.01f) env->log.perfect_grip += 1.0f;
-                if (a->perfect_deliv && env->grip_k < 1.01f && a->perfect_grip) env->log.perfect_deliv += 1.0f;
+                //if (a->perfect_grip && env->grip_k < 1.01f) env->log.perfect_grip += 1.0f;
+                //if (a->perfect_deliv && env->grip_k < 1.01f && a->perfect_grip) env->log.perfect_deliv += 1.0f;
                 if (a->approaching_drop) env->log.to_drop += 1.0f;
                 if (a->hovering_drop) env->log.ho_drop += 1.0f;
             }
