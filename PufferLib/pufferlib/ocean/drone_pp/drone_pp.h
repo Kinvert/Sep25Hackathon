@@ -679,7 +679,13 @@ void c_step(DronePP *env) {
                 agent->hidden_vel.z = 0.0f;
             }
             agent->approaching_pickup = true;
-            float speed = norm3(agent->state.vel);
+            //float speed = norm3(agent->state.vel);
+
+            Vec3 vel_error = {agent->state.vel.x - agent->hidden_vel.x,
+                            agent->state.vel.y - agent->hidden_vel.y,
+                            agent->state.vel.z - agent->hidden_vel.z};
+            float speed = sqrtf(vel_error.x * vel_error.x + vel_error.y * vel_error.y + vel_error.z * vel_error.z);
+
             env->grip_k = clampf(env->tick * -env->grip_k_decay + env->grip_k_max, env->grip_k_min, 100.0f);
             env->box_k = clampf(env->tick * env->box_k_growth + env->box_k_min, env->box_k_min, env->box_k_max);
             agent->box_mass = env->box_k * agent->box_base_mass;
