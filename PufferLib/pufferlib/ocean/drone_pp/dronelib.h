@@ -254,6 +254,7 @@ typedef struct {
 
     // PP Pick and Place
     Vec3 box_pos;
+    Vec3 box_vel;
     Vec3 drop_pos;
     bool gripping;
     bool perfect_grip;

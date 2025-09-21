@@ -408,7 +408,9 @@ float compute_reward(DronePP* env, Drone *agent, bool collision) {
     Vec3 pos_error = {agent->state.pos.x - tgt.x, agent->state.pos.y - tgt.y, agent->state.pos.z - tgt.z};
     float dist = sqrtf(pos_error.x * pos_error.x + pos_error.y * pos_error.y + pos_error.z * pos_error.z) + 0.00000001;
 
-    Vec3 vel_error = {agent->state.vel.x, agent->state.vel.y, agent->state.vel.z - agent->hidden_vel.z};
+    Vec3 vel_error = {agent->state.vel.x - agent->hidden_vel.x,
+                      agent->state.vel.y - agent->hidden_vel.y,
+                      agent->state.vel.z - agent->hidden_vel.z};
     float vel_magnitude = sqrtf(vel_error.x * vel_error.x + vel_error.y * vel_error.y + vel_error.z * vel_error.z);
 
     float angular_vel_magnitude = sqrtf(agent->state.omega.x * agent->state.omega.x +
@@ -481,8 +483,11 @@ float compute_reward(DronePP* env, Drone *agent, bool collision) {
 }
 
 void reset_pp2(DronePP* env, Drone *agent, int idx) {
-    agent->box_pos = (Vec3){rndf(-MARGIN_X, MARGIN_X), rndf(-MARGIN_Y, MARGIN_Y), -GRID_Z + 0.5f};
+    agent->box_pos = (Vec3){rndf(-MARGIN_X, MARGIN_X), rndf(-MARGIN_Y, MARGIN_Y), rndf(-GRID_Z + 0.5f, -GRID_Z + 3.0f)};
     agent->drop_pos = (Vec3){rndf(-MARGIN_X, MARGIN_X), rndf(-MARGIN_Y, MARGIN_Y), -GRID_Z + 0.5f};
+    agent->box_vel = (Vec3){0.0f, 0.0f, 0.0f};
+    agent->box_vel.x = agent->box_pos.x > 0.0f ? rndf(-0.5f, 0.0f) : rndf(0.0f, 0.5f);
+    agent->box_vel.y = agent->box_pos.y > 0.0f ? rndf(-0.5f, 0.0f) : rndf(0.0f, 0.5f);
     agent->gripping = false;
     agent->delivered = false;
     agent->grip_height = 0.0f;
@@ -494,9 +499,10 @@ void reset_pp2(DronePP* env, Drone *agent, int idx) {
     agent->descent_drop = false;
     agent->hover_timer = 0.0f;
     agent->target_pos = agent->box_pos;
+    agent->target_vel = agent->box_vel;
     agent->hidden_pos = agent->target_pos;
     agent->hidden_pos.z += 1.0f;
-    agent->hidden_vel = (Vec3){0.0f, 0.0f, 0.0f};
+    agent->hidden_vel = agent->box_vel;
 
     float drone_capacity = agent->params.arm_len * 4.0f;
     agent->box_size = rndf(0.3f, fmaxf(fminf(drone_capacity, 1.0f), 0.3f));
@@ -660,8 +666,13 @@ void c_step(DronePP *env) {
         // =========================================================================================================================================
         } else if (env->task == TASK_PP2) {
             if (DEBUG > 0) printf("\n\n===%d===\n", env->tick);
-            agent->hidden_pos.x += agent->hidden_vel.x * DT;
-            agent->hidden_pos.y += agent->hidden_vel.y * DT;
+            if (!agent->gripping) {
+                agent->box_pos.x += agent->box_vel.x * DT;
+                agent->box_pos.y += agent->box_vel.y * DT;
+                agent->box_pos.z += agent->box_vel.z * DT;
+                agent->hidden_pos.x = agent->box_pos.x;
+                agent->hidden_pos.y = agent->box_pos.y;
+            }
             agent->hidden_pos.z += agent->hidden_vel.z * DT;
             if (agent->hidden_pos.z < agent->target_pos.z) {
                 agent->hidden_pos.z = agent->target_pos.z;
@@ -705,7 +716,7 @@ void c_step(DronePP *env) {
                 // Phase 2 Box Descent
                 else {
                     agent->descent_pickup = true;
-                    agent->hidden_vel = (Vec3){0.0f, 0.0f, -0.1f};
+                    agent->hidden_vel.z = -0.1f;
                     if (DEBUG > 0) printf("  GRIP\n");
                     if (DEBUG > 0) printf("    xy_dist_to_box = %.3f\n", xy_dist_to_box);
                     if (DEBUG > 0) printf("    z_dist_above_box = %.3f\n", z_dist_above_box);
@@ -1105,7 +1116,7 @@ void c_render(DronePP *env) {
             Vec3 render_pos = agent->box_pos;
             DrawCube((Vector3){render_pos.x, render_pos.y, render_pos.z}, agent->box_size, agent->box_size, agent->box_size, BROWN);
             DrawCube((Vector3){agent->drop_pos.x, agent->drop_pos.y, agent->drop_pos.z}, 0.5f, 0.5f, 0.1f, YELLOW);
-            //DrawSphere((Vector3){agent->hidden_pos.x, agent->hidden_pos.y, agent->hidden_pos.z}, 0.05f, YELLOW);
+            DrawSphere((Vector3){agent->hidden_pos.x, agent->hidden_pos.y, agent->hidden_pos.z}, 0.2f, YELLOW);
         }
     }
 
