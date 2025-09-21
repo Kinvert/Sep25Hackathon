@@ -499,10 +499,10 @@ void reset_pp2(DronePP* env, Drone *agent, int idx) {
     agent->hidden_vel = (Vec3){0.0f, 0.0f, 0.0f};
 
     float drone_capacity = agent->params.arm_len * 4.0f;
-    agent->box_size = rndf(0.05f, fmaxf(drone_capacity, 0.1f));
+    agent->box_size = rndf(0.3f, fmaxf(fminf(drone_capacity, 1.0f), 0.3f));
 
     float box_volume = agent->box_size * agent->box_size * agent->box_size;
-    agent->box_base_mass = env->box_base_density * box_volume * rndf(0.5f, 2.0f);
+    agent->box_base_mass = fminf(env->box_base_density * box_volume * rndf(0.05f, 2.0f), agent->box_mass_max);
     agent->box_mass = env->box_k * agent->box_base_mass;
 
     agent->base_mass = agent->params.mass;

@@ -45,6 +45,7 @@
 #define V_TARGET 0.05f
 #define DT 0.05f
 #define DT_RNG 0.0f
+#define MAX_THRUST_TO_MASS_RATION 0.5f
 
 // Corner to corner distance
 #define MAX_DIST sqrtf((2*GRID_X)*(2*GRID_X) + (2*GRID_Y)*(2*GRID_Y) + (2*GRID_Z)*(2*GRID_Z))
@@ -291,6 +292,7 @@ typedef struct {
     float box_size;
     float box_base_mass;
     float box_mass;
+    float box_mass_max;
     bool box_physics_on;
 } Drone;
 
@@ -333,6 +335,10 @@ void init_drone(Drone* drone, float size, float dr) {
 
     drone->params.max_vel = BASE_MAX_VEL;
     drone->params.max_omega = BASE_MAX_OMEGA;
+
+    float max_thrust = 4.0f * drone->params.k_thrust * powf(drone->params.max_rpm, 2.0f);
+    float max_total_mass = (MAX_THRUST_TO_MASS_RATION * max_thrust) / drone->params.gravity;
+    drone->box_mass_max = max_total_mass - drone->params.mass;
 
     drone->params.k_mot = BASE_K_MOT * rndf(1.0f - dr, 1.0f + dr);
     drone->params.j_mot = BASE_J_MOT * I_scale * rndf(1.0f - dr, 1.0f + dr);
