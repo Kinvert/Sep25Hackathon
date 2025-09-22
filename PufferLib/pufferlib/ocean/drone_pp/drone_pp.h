@@ -501,8 +501,8 @@ void reset_pp2(DronePP* env, Drone *agent, int idx) {
     agent->box_pos = (Vec3){rndf(-MARGIN_X, MARGIN_X), rndf(-MARGIN_Y, MARGIN_Y), rndf(-GRID_Z + 0.5f, -GRID_Z + 3.0f)};
     agent->drop_pos = (Vec3){rndf(-MARGIN_X, MARGIN_X), rndf(-MARGIN_Y, MARGIN_Y), -GRID_Z + 0.5f};
     agent->box_vel = (Vec3){0.0f, 0.0f, 0.0f};
-    agent->box_vel.x = agent->box_pos.x > 0.0f ? rndf(-0.5f, 0.0f) : rndf(0.0f, 0.5f);
-    agent->box_vel.y = agent->box_pos.y > 0.0f ? rndf(-0.5f, 0.0f) : rndf(0.0f, 0.5f);
+    agent->box_vel.x = agent->box_pos.x > 0.0f ? rndf(-0.1f, 0.0f) : rndf(0.0f, 0.1f);
+    agent->box_vel.y = agent->box_pos.y > 0.0f ? rndf(-0.1f, 0.0f) : rndf(0.0f, 0.1f);
     agent->gripping = false;
     agent->delivered = false;
     agent->grip_height = 0.0f;
