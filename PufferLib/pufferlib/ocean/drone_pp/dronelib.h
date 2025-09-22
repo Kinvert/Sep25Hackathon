@@ -31,7 +31,7 @@
 #define BASE_GRAVITY 9.81f   // m/s^2
 #define BASE_MAX_RPM 750.0f  // rad/s
 #define BASE_MAX_VEL 50.0f   // m/s
-#define BASE_MAX_OMEGA 50.0f // rad/s
+#define BASE_MAX_OMEGA 6.3f  // rad/s
 #define BASE_K_MOT 0.1f      // s (Motor lag constant)
 #define BASE_J_MOT 1e-5f     // kgm^2 (Motor rotational inertia)
 

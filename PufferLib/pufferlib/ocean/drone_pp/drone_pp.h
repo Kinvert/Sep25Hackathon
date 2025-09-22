@@ -187,9 +187,9 @@ void compute_observations(DronePP *env) {
         env->observations[idx++] = clampf(agent->state.vel.y, -1.0f, 1.0f);
         env->observations[idx++] = clampf(agent->state.vel.z, -1.0f, 1.0f);
 
-        env->observations[idx++] = agent->state.omega.x / agent->params.max_omega;
-        env->observations[idx++] = agent->state.omega.y / agent->params.max_omega;
-        env->observations[idx++] = agent->state.omega.z / agent->params.max_omega;
+        env->observations[idx++] = clampf(agent->state.omega.x / agent->params.max_omega, -1.0f, 1.0f);
+        env->observations[idx++] = clampf(agent->state.omega.y / agent->params.max_omega, -1.0f, 1.0f);
+        env->observations[idx++] = clampf(agent->state.omega.z / agent->params.max_omega, -1.0f, 1.0f);
 
         env->observations[idx++] = drone_up_world.x;
         env->observations[idx++] = drone_up_world.y;
