@@ -248,6 +248,10 @@ void compute_observations(DronePP *env) {
             env->observations[idx++] = ring_norm.y;
             env->observations[idx++] = ring_norm.z;
             env->observations[idx++] = 0.0f; // TASK_PP2
+            env->observations[idx++] = 0.0f;
+            env->observations[idx++] = 0.0f;
+            env->observations[idx++] = 0.0f;
+
         } else if (env->task == TASK_PP2) {
             Vec3 to_box = quat_rotate(q_inv, sub3(agent->box_pos, agent->state.pos));
             Vec3 to_drop = quat_rotate(q_inv, sub3(agent->drop_pos, agent->state.pos));
@@ -258,6 +262,12 @@ void compute_observations(DronePP *env) {
             env->observations[idx++] = to_drop.y / GRID_Y;
             env->observations[idx++] = to_drop.z / GRID_Z;
             env->observations[idx++] = 1.0f; // TASK_PP2
+            float dvx = agent->target_vel.x - agent->state.vel.x;
+            float dvy = agent->target_vel.y - agent->state.vel.y;
+            float dvz = agent->target_vel.z - agent->state.vel.z;
+            env->observations[idx++] = clampf(dvx, -1.0f, 1.0f);
+            env->observations[idx++] = clampf(dvy, -1.0f, 1.0f);
+            env->observations[idx++] = clampf(dvz, -1.0f, 1.0f);
          } else {
             env->observations[idx++] = 0.0f;
             env->observations[idx++] = 0.0f;
@@ -266,6 +276,10 @@ void compute_observations(DronePP *env) {
             env->observations[idx++] = 0.0f;
             env->observations[idx++] = 0.0f;
             env->observations[idx++] = 0.0f; // TASK_PP2
+            env->observations[idx++] = 0.0f;
+            env->observations[idx++] = 0.0f;
+            env->observations[idx++] = 0.0f;
+
         }
     }
 }
@@ -372,10 +386,11 @@ void set_target_pp2(DronePP* env, int idx) {
     Drone* agent = &env->agents[idx];
     if (!agent->gripping) {
         agent->target_pos = (Vec3){agent->box_pos.x, agent->box_pos.y, agent->box_pos.z};
+        agent->target_vel = agent->box_vel;
     } else {
         agent->target_pos = (Vec3){agent->drop_pos.x, agent->drop_pos.y, agent->drop_pos.z};
+        agent->target_vel = (Vec3){0.0f, 0.0f, 0.0f};
     }
-    agent->target_vel = (Vec3){0.0f, 0.0f, 0.0f};
 }
 
 void set_target(DronePP* env, int idx) {
@@ -751,6 +766,7 @@ void c_step(DronePP *env) {
                 agent->box_pos = agent->state.pos;
                 agent->box_pos.z -= 0.5f;
                 agent->target_pos = agent->drop_pos;
+                agent->target_vel = (Vec3){0.0f, 0.0f, 0.0f};
                 float xy_dist_to_drop = sqrtf(powf(agent->state.pos.x - agent->drop_pos.x, 2) +
                                             powf(agent->state.pos.y - agent->drop_pos.y, 2));
                 float z_dist_above_drop = agent->state.pos.z - agent->drop_pos.z;
