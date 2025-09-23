@@ -114,7 +114,6 @@ typedef struct {
     float reward_hover;
     float reward_grip;
     float reward_ho_drop;
-    float reward_deliv;
 
     Client *client;
 } DronePP;
