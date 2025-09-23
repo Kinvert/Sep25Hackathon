@@ -680,6 +680,11 @@ void c_step(DronePP *env) {
         // =========================================================================================================================================
         // =========================================================================================================================================
         } else if (env->task == TASK_PP2) {
+
+            int db_tick_perfect_grip = 0;
+            float db_grip_k_at_grip = 1000.0f;
+            float db_box_x_at_grip = 0.0f;
+
             if (DEBUG > 0) printf("\n\n===%d===\n", env->tick);
             if (!agent->gripping) {
                 agent->box_pos.x += agent->box_vel.x * DT;
@@ -749,7 +754,10 @@ void c_step(DronePP *env) {
                         speed < k * 0.1f &&
                         agent->state.vel.z > k * -0.05f && agent->state.vel.z < 0.0f
                     ) {
+                        db_grip_k_at_grip = k;
+                        db_box_x_at_grip = env->box_k;
                         if (k < 1.01 && env->box_k > 0.99f) {
+                            db_tick_perfect_grip = env->tick;
                             agent->perfect_grip = true;
                             agent->color = (Color){100, 100, 255, 255}; // Light Blue
                         }
@@ -802,6 +810,12 @@ void c_step(DronePP *env) {
                         agent->delivered = true;
                         agent->has_delivered = true;
                         if (k < 1.01f && agent->perfect_grip  && env->box_k > 0.99f) {
+                            if (DEBUG > 0) {
+                                printf("\n======\n");
+                                printf("  db_tick_perfect_grip = %d\n", db_tick_perfect_grip);
+                                printf("  db_grip_k_at_grip = %.3f\n", db_grip_k_at_grip);
+                                printf("  db_box_x_at_grip = %.3f\n", db_box_x_at_grip);
+                            }
                             agent->perfect_deliv = true;
                             agent->perfect_deliveries += 1.0f;
                             agent->perfect_now = true;
