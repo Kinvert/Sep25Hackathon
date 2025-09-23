@@ -122,7 +122,7 @@ int main() {
     env->max_rings = 10;
 
     env->reward_min_dist = 1.3159451723909112;
-    env->reward_max_dist = 83.14960592300233;
+    env->reward_max_dist = 65.0;
     env->dist_decay = 0.5;
 
     env->w_position = 1.2303854103933083;

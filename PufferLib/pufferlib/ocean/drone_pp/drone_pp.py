@@ -12,7 +12,7 @@ class DronePP(pufferlib.PufferEnv):
         max_rings=5,
 
         reward_min_dist=1.3159451723909112,
-        reward_max_dist=83.14960592300233,
+        reward_max_dist=65.0,
         dist_decay=0.15,
 
         w_position=1.2303854103933083,
