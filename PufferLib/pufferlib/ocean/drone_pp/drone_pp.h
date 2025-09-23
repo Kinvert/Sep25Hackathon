@@ -416,7 +416,7 @@ void set_target(DronePP* env, int idx) {
 }
 
 float compute_reward(DronePP* env, Drone *agent, bool collision) {
-    if (DEBUG > 0) printf("  Compute Reward\n");
+    if (DEBUG > 2) printf("  Compute Reward\n");
     Vec3 tgt = agent->target_pos;
     if (env->task == TASK_PP2) tgt = agent->hidden_pos;
 
@@ -440,7 +440,7 @@ float compute_reward(DronePP* env, Drone *agent, bool collision) {
 
     // slight reward for 0.05 for example, large penalty for over 0.4
     float velocity_penalty = clampf(proximity_factor * (2.0f * expf(-(vel_magnitude - 0.05f) * 10.0f) - 1.0f), -1.0f, 1.0f);
-    if (DEBUG > 0) printf("    velocity_penalty = %.3f\n", velocity_penalty);
+    if (DEBUG > 2) printf("    velocity_penalty = %.3f\n", velocity_penalty);
 
     float stability_reward = -angular_vel_magnitude * agent->params.inv_max_omega;
 
@@ -681,11 +681,12 @@ void c_step(DronePP *env) {
         // =========================================================================================================================================
         } else if (env->task == TASK_PP2) {
 
-            int db_tick_perfect_grip = 0;
-            float db_grip_k_at_grip = 1000.0f;
-            float db_box_x_at_grip = 0.0f;
+            int db_tick_perfect_grip = -1;
+            float db_grip_k_at_grip = -1.0f;
+            float db_box_x_at_grip = -1.0f;
+            //if (agent->perfect_grip) printf("PERFECT GRIP\n");
 
-            if (DEBUG > 0) printf("\n\n===%d===\n", env->tick);
+            if (DEBUG > 1) printf("\n\n===%d===\n", env->tick);
             if (!agent->gripping) {
                 agent->box_pos.x += agent->box_vel.x * DT;
                 agent->box_pos.y += agent->box_vel.y * DT;
@@ -699,7 +700,6 @@ void c_step(DronePP *env) {
                 agent->hidden_vel.z = 0.0f;
             }
             agent->approaching_pickup = true;
-            //float speed = norm3(agent->state.vel);
 
             Vec3 vel_error = {agent->state.vel.x - agent->hidden_vel.x,
                             agent->state.vel.y - agent->hidden_vel.y,
@@ -710,11 +710,11 @@ void c_step(DronePP *env) {
             env->box_k = clampf(env->tick * env->box_k_growth + env->box_k_min, env->box_k_min, env->box_k_max);
             agent->box_mass = env->box_k * agent->box_base_mass;
             float k = env->grip_k;
-            if (DEBUG > 0) printf("  PP2\n");
-            if (DEBUG > 0) printf("    K = %.3f\n", k);
-            if (DEBUG > 0) printf("    Hidden = %.3f %.3f %.3f\n", agent->hidden_pos.x, agent->hidden_pos.y, agent->hidden_pos.z);
-            if (DEBUG > 0) printf("    HiddenV = %.3f %.3f %.3f\n", agent->hidden_vel.x, agent->hidden_vel.y, agent->hidden_vel.z);
-            if (DEBUG > 0) printf("    speed = %.3f\n", speed);
+            if (DEBUG > 1) printf("  PP2\n");
+            if (DEBUG > 1) printf("    K = %.3f\n", k);
+            if (DEBUG > 1) printf("    Hidden = %.3f %.3f %.3f\n", agent->hidden_pos.x, agent->hidden_pos.y, agent->hidden_pos.z);
+            if (DEBUG > 1) printf("    HiddenV = %.3f %.3f %.3f\n", agent->hidden_vel.x, agent->hidden_vel.y, agent->hidden_vel.z);
+            if (DEBUG > 1) printf("    speed = %.3f\n", speed);
             if (!agent->gripping) {
                 float dist_to_hidden = sqrtf(powf(agent->state.pos.x - agent->hidden_pos.x, 2) +
                                             powf(agent->state.pos.y - agent->hidden_pos.y, 2) +
@@ -725,10 +725,10 @@ void c_step(DronePP *env) {
 
                 // Phase 1 Box Hover
                 if (!agent->hovering_pickup) {
-                    if (DEBUG > 0) printf("  Phase1\n");
-                    if (DEBUG > 0) printf("    dist_to_hidden = %.3f\n", dist_to_hidden);
-                    if (DEBUG > 0) printf("    xy_dist_to_box = %.3f\n", xy_dist_to_box);
-                    if (DEBUG > 0) printf("    z_dist_above_box = %.3f\n", z_dist_above_box);
+                    if (DEBUG > 1) printf("  Phase1\n");
+                    if (DEBUG > 1) printf("    dist_to_hidden = %.3f\n", dist_to_hidden);
+                    if (DEBUG > 1) printf("    xy_dist_to_box = %.3f\n", xy_dist_to_box);
+                    if (DEBUG > 1) printf("    z_dist_above_box = %.3f\n", z_dist_above_box);
                     if (dist_to_hidden < 0.4f && speed < 0.4f) {
                         agent->hovering_pickup = true;
                         agent->color = (Color){255, 255, 255, 255}; // White
@@ -743,11 +743,11 @@ void c_step(DronePP *env) {
                 else {
                     agent->descent_pickup = true;
                     agent->hidden_vel.z = -0.1f;
-                    if (DEBUG > 0) printf("  GRIP\n");
-                    if (DEBUG > 0) printf("    xy_dist_to_box = %.3f\n", xy_dist_to_box);
-                    if (DEBUG > 0) printf("    z_dist_above_box = %.3f\n", z_dist_above_box);
-                    if (DEBUG > 0) printf("    speed = %.3f\n", speed);
-                    if (DEBUG > 0) printf("    agent->state.vel.z = %.3f\n", agent->state.vel.z);
+                    if (DEBUG > 1) printf("  GRIP\n");
+                    if (DEBUG > 1) printf("    xy_dist_to_box = %.3f\n", xy_dist_to_box);
+                    if (DEBUG > 1) printf("    z_dist_above_box = %.3f\n", z_dist_above_box);
+                    if (DEBUG > 1) printf("    speed = %.3f\n", speed);
+                    if (DEBUG > 1) printf("    agent->state.vel.z = %.3f\n", agent->state.vel.z);
                     if (
                         xy_dist_to_box < k * 0.1f &&
                         z_dist_above_box < k * 0.1f && z_dist_above_box > 0.0f &&
@@ -838,9 +838,15 @@ void c_step(DronePP *env) {
                 if (a->descent_pickup) env->log.de_pickup += 1.0f;
                 if (a->gripping) env->log.gripping += 1.0f;
                 if (a->delivered) env->log.delivered += 1.0f;
-                if (a->perfect_grip && env->grip_k < 1.01f) env->log.perfect_grip += 1.0f;
-                if (a->perfect_deliv && env->grip_k < 1.01f && a->perfect_grip) env->log.perfect_deliv += agent->perfect_deliveries;
-                if (a->perfect_deliv && env->grip_k < 1.01f && a->perfect_grip && a->perfect_now && env->box_k > 0.99f) env->log.perfect_now += 1.0f;
+                if (a->perfect_grip && env->grip_k < 1.01f && env->box_k > 0.99f) {
+                    env->log.perfect_grip += 1.0f;
+                }
+                if (a->perfect_deliv && env->grip_k < 1.01f && a->perfect_grip && env->box_k > 0.99f) {
+                    env->log.perfect_deliv += agent->perfect_deliveries;
+                }
+                if (a->perfect_deliv && env->grip_k < 1.01f && a->perfect_grip && a->perfect_now && env->box_k > 0.99f) {
+                    env->log.perfect_now += 1.0f;
+                }
                 if (a->approaching_drop) env->log.to_drop += 1.0f;
                 if (a->hovering_drop) env->log.ho_drop += 1.0f;
             }
@@ -1016,11 +1022,11 @@ void c_render(DronePP *env) {
         }
     }
     env->render = true;
-    env->grip_k_max = 1.0f;
-    env->grip_k_min = 1.0f;
-    env->box_k_max = 1.0f;
-    env->box_k_min = 1.0f;
-    env->box_k = 1.0f;
+    //env->grip_k_max = 1.0f;
+    //env->grip_k_min = 1.0f;
+    //env->box_k_max = 1.0f;
+    //env->box_k_min = 1.0f;
+    //env->box_k = 1.0f;
     if (WindowShouldClose()) {
         c_close(env);
         exit(0);
@@ -1170,6 +1176,8 @@ void c_render(DronePP *env) {
     DrawText("Mouse wheel: Zoom in/out", 10, 30, 16, PUFF_WHITE);
     DrawText(TextFormat("Task: %s", TASK_NAMES[env->task]), 10, 50, 16, PUFF_WHITE);
     DrawText(TextFormat("Tick = %d", env->tick), 10, 70, 16, PUFF_WHITE);
+    DrawText(TextFormat("grip_k = %.3f", env->grip_k), 10, 90, 16, PUFF_WHITE);
+    DrawText(TextFormat("box_k = %.3f", env->box_k), 10, 110, 16, PUFF_WHITE);
 
     EndDrawing();
 }
