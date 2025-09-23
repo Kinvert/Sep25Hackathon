@@ -115,6 +115,8 @@ typedef struct {
     float reward_grip;
     float reward_ho_drop;
 
+    int episode_num;
+
     Client *client;
 } DronePP;
 
@@ -127,6 +129,7 @@ void init(DronePP *env) {
     env->ring_buffer = calloc(env->max_rings, sizeof(Ring));
     env->log = (Log){0};
     env->tick = 0;
+    env->episode_num = 0;
 }
 
 void add_log(DronePP *env, int idx, bool oob) {
@@ -606,6 +609,8 @@ void update_gripping_physics(Drone* agent) {
 
 void c_reset(DronePP *env) {
     env->tick = 0;
+    env->episode_num += 1;
+    printf("EPS = %d\n", env->episode_num);
     //env->task = rand() % (TASK_N - 1);
     
     if (rand() % 4) {
@@ -680,7 +685,6 @@ void c_step(DronePP *env) {
         // =========================================================================================================================================
         // =========================================================================================================================================
         } else if (env->task == TASK_PP2) {
-
             int db_tick_perfect_grip = -1;
             float db_grip_k_at_grip = -1.0f;
             float db_box_x_at_grip = -1.0f;
@@ -706,8 +710,10 @@ void c_step(DronePP *env) {
                             agent->state.vel.z - agent->hidden_vel.z};
             float speed = sqrtf(vel_error.x * vel_error.x + vel_error.y * vel_error.y + vel_error.z * vel_error.z);
 
-            env->grip_k = clampf(env->tick * -env->grip_k_decay + env->grip_k_max, env->grip_k_min, 100.0f);
-            env->box_k = clampf(env->tick * env->box_k_growth + env->box_k_min, env->box_k_min, env->box_k_max);
+            //env->grip_k = clampf(env->tick * -env->grip_k_decay + env->grip_k_max, env->grip_k_min, 100.0f);
+            env->grip_k = clampf(env->episode_num * -env->grip_k_decay + env->grip_k_max, env->grip_k_min, 100.0f);
+            //env->box_k = clampf(env->tick * env->box_k_growth + env->box_k_min, env->box_k_min, env->box_k_max);
+            env->box_k = clampf(env->episode_num * env->box_k_growth + env->box_k_min, env->box_k_min, env->box_k_max);
             agent->box_mass = env->box_k * agent->box_base_mass;
             float k = env->grip_k;
             if (DEBUG > 1) printf("  PP2\n");
@@ -1178,6 +1184,7 @@ void c_render(DronePP *env) {
     DrawText(TextFormat("Tick = %d", env->tick), 10, 70, 16, PUFF_WHITE);
     DrawText(TextFormat("grip_k = %.3f", env->grip_k), 10, 90, 16, PUFF_WHITE);
     DrawText(TextFormat("box_k = %.3f", env->box_k), 10, 110, 16, PUFF_WHITE);
+    DrawText(TextFormat("eps = %.d", env->episode_num), 10, 130, 16, PUFF_WHITE);
 
     EndDrawing();
 }
