@@ -340,15 +340,23 @@ void init_drone(Drone* drone, float size, float dr) {
     // RPM ~ 1/x
     float rpm_scale = (BASE_ARM_LEN) / (drone->params.arm_len);
     drone->params.max_rpm = BASE_MAX_RPM * rpm_scale * rndf(1.0f - dr, 1.0f + dr);
+    float max_thrust = 4.0f * drone->params.k_thrust * powf(drone->params.max_rpm, 2.0f);
+    float max_total_mass = (MAX_THRUST_TO_MASS_RATION * max_thrust) / drone->params.gravity;
+    while (max_thrust < 2.0f * drone->params.mass * drone->params.gravity) {
+        drone->params.max_rpm = drone->params.max_rpm * 2.0f;
+        max_thrust = 4.0f * drone->params.k_thrust * powf(drone->params.max_rpm, 2.0f);
+        max_total_mass = (MAX_THRUST_TO_MASS_RATION * max_thrust) / drone->params.gravity;
+    }
+    if (drone->params.max_rpm < 0.001) drone->params.max_rpm += 0.001;
     drone->params.inv_max_rpm = 1.0f / drone->params.max_rpm;
 
     drone->params.max_vel = BASE_MAX_VEL;
+    if (drone->params.max_vel < 0.001) drone->params.max_vel += 0.001;
     drone->params.inv_max_vel = 1.0f / drone->params.max_vel;
     drone->params.max_omega = BASE_MAX_OMEGA;
+    if (drone->params.max_omega < 0.001) drone->params.max_omega += 0.001;
     drone->params.inv_max_omega = 1.0f / drone->params.max_omega;
 
-    float max_thrust = 4.0f * drone->params.k_thrust * powf(drone->params.max_rpm, 2.0f);
-    float max_total_mass = (MAX_THRUST_TO_MASS_RATION * max_thrust) / drone->params.gravity;
     drone->box_mass_max = max_total_mass - drone->params.mass;
 
     drone->params.k_mot = BASE_K_MOT * rndf(1.0f - dr, 1.0f + dr);
