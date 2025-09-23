@@ -180,16 +180,16 @@ void compute_observations(DronePP *env) {
 
         // TODO: Need abs observations now right? idk
         // 45 after dvx dvy dvz for moving box
-        env->observations[idx++] = linear_vel_body.x / agent->params.max_vel;
-        env->observations[idx++] = linear_vel_body.y / agent->params.max_vel;
-        env->observations[idx++] = linear_vel_body.z / agent->params.max_vel;
+        env->observations[idx++] = linear_vel_body.x * agent->params.inv_max_vel;
+        env->observations[idx++] = linear_vel_body.y * agent->params.inv_max_vel;
+        env->observations[idx++] = linear_vel_body.z * agent->params.inv_max_vel;
         env->observations[idx++] = clampf(agent->state.vel.x, -1.0f, 1.0f);
         env->observations[idx++] = clampf(agent->state.vel.y, -1.0f, 1.0f);
         env->observations[idx++] = clampf(agent->state.vel.z, -1.0f, 1.0f);
 
-        env->observations[idx++] = clampf(agent->state.omega.x / agent->params.max_omega, -1.0f, 1.0f);
-        env->observations[idx++] = clampf(agent->state.omega.y / agent->params.max_omega, -1.0f, 1.0f);
-        env->observations[idx++] = clampf(agent->state.omega.z / agent->params.max_omega, -1.0f, 1.0f);
+        env->observations[idx++] = clampf(agent->state.omega.x * agent->params.inv_max_omega, -1.0f, 1.0f);
+        env->observations[idx++] = clampf(agent->state.omega.y * agent->params.inv_max_omega, -1.0f, 1.0f);
+        env->observations[idx++] = clampf(agent->state.omega.z * agent->params.inv_max_omega, -1.0f, 1.0f);
 
         env->observations[idx++] = drone_up_world.x;
         env->observations[idx++] = drone_up_world.y;
@@ -200,14 +200,14 @@ void compute_observations(DronePP *env) {
         env->observations[idx++] = agent->state.quat.y;
         env->observations[idx++] = agent->state.quat.z;
 
-        env->observations[idx++] = agent->state.rpms[0] / agent->params.max_rpm;
-        env->observations[idx++] = agent->state.rpms[1] / agent->params.max_rpm;
-        env->observations[idx++] = agent->state.rpms[2] / agent->params.max_rpm;
-        env->observations[idx++] = agent->state.rpms[3] / agent->params.max_rpm;
+        env->observations[idx++] = agent->state.rpms[0] * agent->params.inv_max_rpm;
+        env->observations[idx++] = agent->state.rpms[1] * agent->params.inv_max_rpm;
+        env->observations[idx++] = agent->state.rpms[2] * agent->params.inv_max_rpm;
+        env->observations[idx++] = agent->state.rpms[3] * agent->params.inv_max_rpm;
 
-        env->observations[idx++] = agent->state.pos.x / GRID_X;
-        env->observations[idx++] = agent->state.pos.y / GRID_Y;
-        env->observations[idx++] = agent->state.pos.z / GRID_Z;
+        env->observations[idx++] = agent->state.pos.x * INV_GRID_X;
+        env->observations[idx++] = agent->state.pos.y * INV_GRID_Y;
+        env->observations[idx++] = agent->state.pos.z * INV_GRID_Z;
 
         float dx = agent->target_pos.x - agent->state.pos.x;
         float dy = agent->target_pos.y - agent->state.pos.y;
@@ -215,9 +215,9 @@ void compute_observations(DronePP *env) {
         env->observations[idx++] = clampf(dx, -1.0f, 1.0f);
         env->observations[idx++] = clampf(dy, -1.0f, 1.0f);
         env->observations[idx++] = clampf(dz, -1.0f, 1.0f);
-        env->observations[idx++] = dx / GRID_X;
-        env->observations[idx++] = dy / GRID_Y;
-        env->observations[idx++] = dz / GRID_Z;
+        env->observations[idx++] = dx * INV_GRID_X;
+        env->observations[idx++] = dy * INV_GRID_Y;
+        env->observations[idx++] = dz * INV_GRID_Z;
 
         env->observations[idx++] = agent->last_collision_reward;
         env->observations[idx++] = agent->last_target_reward;
@@ -241,9 +241,9 @@ void compute_observations(DronePP *env) {
             Ring ring = env->ring_buffer[agent->ring_idx];
             Vec3 to_ring = quat_rotate(q_inv, sub3(ring.pos, agent->state.pos));
             Vec3 ring_norm = quat_rotate(q_inv, ring.normal);
-            env->observations[idx++] = to_ring.x / GRID_X;
-            env->observations[idx++] = to_ring.y / GRID_Y;
-            env->observations[idx++] = to_ring.z / GRID_Z;
+            env->observations[idx++] = to_ring.x * INV_GRID_X;
+            env->observations[idx++] = to_ring.y * INV_GRID_Y;
+            env->observations[idx++] = to_ring.z * INV_GRID_Z;
             env->observations[idx++] = ring_norm.x;
             env->observations[idx++] = ring_norm.y;
             env->observations[idx++] = ring_norm.z;
@@ -255,12 +255,12 @@ void compute_observations(DronePP *env) {
         } else if (env->task == TASK_PP2) {
             Vec3 to_box = quat_rotate(q_inv, sub3(agent->box_pos, agent->state.pos));
             Vec3 to_drop = quat_rotate(q_inv, sub3(agent->drop_pos, agent->state.pos));
-            env->observations[idx++] = to_box.x / GRID_X;
-            env->observations[idx++] = to_box.y / GRID_Y;
-            env->observations[idx++] = to_box.z / GRID_Z;
-            env->observations[idx++] = to_drop.x / GRID_X;
-            env->observations[idx++] = to_drop.y / GRID_Y;
-            env->observations[idx++] = to_drop.z / GRID_Z;
+            env->observations[idx++] = to_box.x * INV_GRID_X;
+            env->observations[idx++] = to_box.y * INV_GRID_Y;
+            env->observations[idx++] = to_box.z * INV_GRID_Z;
+            env->observations[idx++] = to_drop.x * INV_GRID_X;
+            env->observations[idx++] = to_drop.y * INV_GRID_Y;
+            env->observations[idx++] = to_drop.z * INV_GRID_Z;
             env->observations[idx++] = 1.0f; // TASK_PP2
             float dvx = agent->target_vel.x - agent->state.vel.x;
             float dvy = agent->target_vel.y - agent->state.vel.y;
@@ -442,7 +442,7 @@ float compute_reward(DronePP* env, Drone *agent, bool collision) {
     float velocity_penalty = clampf(proximity_factor * (2.0f * expf(-(vel_magnitude - 0.05f) * 10.0f) - 1.0f), -1.0f, 1.0f);
     if (DEBUG > 0) printf("    velocity_penalty = %.3f\n", velocity_penalty);
 
-    float stability_reward = -angular_vel_magnitude / agent->params.max_omega;
+    float stability_reward = -angular_vel_magnitude * agent->params.inv_max_omega;
 
     Vec3 to_target_unit = {0, 0, 0};
     if (dist > 0.001f) {
@@ -455,7 +455,7 @@ float compute_reward(DronePP* env, Drone *agent, bool collision) {
                         to_target_unit.z * agent->state.vel.z;
 
     float approach_weight = clampf(dist / env->reward_dist, 0.0f, 1.0f); // todo
-    float approach_reward = approach_weight * clampf(approach_dot / agent->params.max_vel, -0.5f, 0.5f);
+    float approach_reward = approach_weight * clampf(approach_dot * agent->params.inv_max_vel, -0.5f, 0.5f);
 
     float hover_bonus = 0.0f; // todo add a K
     if (dist < env->reward_dist * 0.2f && vel_magnitude < 0.2f && agent->state.vel.z < 0.0f) {
@@ -501,8 +501,8 @@ void reset_pp2(DronePP* env, Drone *agent, int idx) {
     agent->box_pos = (Vec3){rndf(-MARGIN_X, MARGIN_X), rndf(-MARGIN_Y, MARGIN_Y), rndf(-GRID_Z + 0.5f, -GRID_Z + 3.0f)};
     agent->drop_pos = (Vec3){rndf(-MARGIN_X, MARGIN_X), rndf(-MARGIN_Y, MARGIN_Y), -GRID_Z + 0.5f};
     agent->box_vel = (Vec3){0.0f, 0.0f, 0.0f};
-    agent->box_vel.x = agent->box_pos.x > 0.0f ? rndf(-0.1f, 0.0f) : rndf(0.0f, 0.1f);
-    agent->box_vel.y = agent->box_pos.y > 0.0f ? rndf(-0.1f, 0.0f) : rndf(0.0f, 0.1f);
+    agent->box_vel.x = agent->box_pos.x > 0.0f ? rndf(-0.2f, 0.0f) : rndf(0.0f, 0.2f);
+    agent->box_vel.y = agent->box_pos.y > 0.0f ? rndf(-0.2f, 0.0f) : rndf(0.0f, 0.2f);
     agent->gripping = false;
     agent->delivered = false;
     agent->grip_height = 0.0f;

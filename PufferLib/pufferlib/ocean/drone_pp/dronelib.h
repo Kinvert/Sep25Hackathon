@@ -39,6 +39,10 @@
 #define GRID_X 30.0f
 #define GRID_Y 30.0f
 #define GRID_Z 10.0f
+#define INV_GRID_X 0.33333f
+#define INV_GRID_Y 0.33333f
+#define INV_GRID_Z 0.1f
+
 #define MARGIN_X (GRID_X - 1)
 #define MARGIN_Y (GRID_Y - 1)
 #define MARGIN_Z (GRID_Z - 1)
@@ -233,8 +237,11 @@ typedef struct {
     float b_drag; // linear drag coefficient
     float gravity; // m/s^2
     float max_rpm; // rad/s
+    float inv_max_rpm; // s/rad
     float max_vel; // m/s
+    float inv_max_vel; // s/m
     float max_omega; // rad/s
+    float inv_max_omega; // s/rad
     float k_mot; // s
     float j_mot; // kgm^2
 } Params;
@@ -333,9 +340,12 @@ void init_drone(Drone* drone, float size, float dr) {
     // RPM ~ 1/x
     float rpm_scale = (BASE_ARM_LEN) / (drone->params.arm_len);
     drone->params.max_rpm = BASE_MAX_RPM * rpm_scale * rndf(1.0f - dr, 1.0f + dr);
+    drone->params.inv_max_rpm = 1.0f / drone->params.max_rpm;
 
     drone->params.max_vel = BASE_MAX_VEL;
+    drone->params.inv_max_vel = 1.0f / drone->params.max_vel;
     drone->params.max_omega = BASE_MAX_OMEGA;
+    drone->params.inv_max_omega = 1.0f / drone->params.max_omega;
 
     float max_thrust = 4.0f * drone->params.k_thrust * powf(drone->params.max_rpm, 2.0f);
     float max_total_mass = (MAX_THRUST_TO_MASS_RATION * max_thrust) / drone->params.gravity;
