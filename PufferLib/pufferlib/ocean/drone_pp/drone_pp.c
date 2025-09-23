@@ -143,6 +143,7 @@ int main() {
 
     env->reward_hover = 0.25;
     env->reward_grip = 0.5;
+    env->reward_ho_drop = 0.25;
     env->reward_deliv = 0.75;
 
     env->task = TASK_ORBIT;

@@ -113,6 +113,7 @@ typedef struct {
 
     float reward_hover;
     float reward_grip;
+    float reward_ho_drop;
     float reward_deliv;
 
     Client *client;
@@ -781,7 +782,7 @@ void c_step(DronePP *env) {
                     agent->hidden_vel = (Vec3){0.0f, 0.0f, 0.0f};
                     if (xy_dist_to_drop < k * 0.4f && z_dist_above_drop > 0.7f && z_dist_above_drop < 1.3f) {
                         agent->hovering_drop = true;
-                        reward += 0.25;
+                        reward += env->reward_ho_drop;
                         agent->color = (Color){0, 0, 255, 255}; // Blue
                     }
                 }
@@ -1155,7 +1156,7 @@ void c_render(DronePP *env) {
     DrawText("Left click + drag: Rotate camera", 10, 10, 16, PUFF_WHITE);
     DrawText("Mouse wheel: Zoom in/out", 10, 30, 16, PUFF_WHITE);
     DrawText(TextFormat("Task: %s", TASK_NAMES[env->task]), 10, 50, 16, PUFF_WHITE);
-    DrawText(TextFormat("K = %.3f", env->grip_k), 10, 70, 16, PUFF_WHITE);
+    DrawText(TextFormat("Tick = %d", env->tick), 10, 70, 16, PUFF_WHITE);
 
     EndDrawing();
 }
