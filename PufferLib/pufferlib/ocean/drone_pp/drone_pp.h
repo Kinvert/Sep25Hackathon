@@ -610,7 +610,6 @@ void update_gripping_physics(Drone* agent) {
 void c_reset(DronePP *env) {
     env->tick = 0;
     env->episode_num += 1;
-    printf("EPS = %d\n", env->episode_num);
     //env->task = rand() % (TASK_N - 1);
     
     if (rand() % 4) {
