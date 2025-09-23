@@ -34,7 +34,6 @@ class DronePP(pufferlib.PufferEnv):
         reward_hover=0.25,
         reward_grip=0.5,
         reward_ho_drop=0.25,
-        reward_deliv=0.75,
 
         render_mode=None,
         report_interval=1024,
@@ -94,8 +93,7 @@ class DronePP(pufferlib.PufferEnv):
 
                 reward_hover=reward_hover,
                 reward_grip=reward_grip,
-                reward_ho_drop=reward_ho_drop,
-                reward_deliv=reward_deliv
+                reward_ho_drop=reward_ho_drop
             ))
 
         self.c_envs = binding.vectorize(*c_envs)

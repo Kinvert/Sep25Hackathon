@@ -30,7 +30,6 @@ static int my_init(Env *env, PyObject *args, PyObject *kwargs) {
     env->reward_hover = unpack(kwargs, "reward_hover");
     env->reward_grip = unpack(kwargs, "reward_grip");
     env->reward_ho_drop = unpack(kwargs, "reward_ho_drop");
-    env->reward_deliv = unpack(kwargs, "reward_deliv");
 
     init(env);
     return 0;

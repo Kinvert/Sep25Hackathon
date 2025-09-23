@@ -799,7 +799,7 @@ void c_step(DronePP *env) {
                         update_gripping_physics(agent);
                         agent->box_physics_on = false;
                         agent->hovering_drop = false;
-                        reward += env->reward_deliv;
+                        reward += 1.0f;
                         agent->delivered = true;
                         agent->has_delivered = true;
                         if (k < 1.01f && agent->perfect_grip  && env->box_k > 0.99f) {
