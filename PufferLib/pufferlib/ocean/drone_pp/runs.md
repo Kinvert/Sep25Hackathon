@@ -127,3 +127,10 @@
   - =====================================
   - divine-dust-193
     - FAKE
+- pp17 episode decay not ticks
+  - ======================
+  - firm-bird-2 mrdo4x22
+    - 9528 REAL
+  - ======================
+  - lyric-forest-50 gxjpowu9
+    - 4195 real it's ok
