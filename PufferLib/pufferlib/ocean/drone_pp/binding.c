@@ -4,25 +4,29 @@
 #include "../env_binding.h"
 
 static int my_init(Env *env, PyObject *args, PyObject *kwargs) {
+    // Isaac Sim compatible - use hardcoded values matching working PID implementation
     env->num_agents = unpack(kwargs, "num_agents");
-    env->max_rings = unpack(kwargs, "max_rings");
 
-    env->reward_min_dist = unpack(kwargs, "reward_min_dist");
-    env->reward_max_dist = unpack(kwargs, "reward_max_dist");
-    env->dist_decay = unpack(kwargs, "dist_decay");
+    // Hardcode all parameters to match Isaac Sim exactly
+    env->max_rings = 5;
 
-    env->w_position = unpack(kwargs, "w_position");
-    env->w_velocity = unpack(kwargs, "w_velocity");
-    env->w_stability = unpack(kwargs, "w_stability");
-    env->w_approach = unpack(kwargs, "w_approach");
-    env->w_hover = unpack(kwargs, "w_hover");
+    // These don't affect PID control but set reasonable defaults
+    env->reward_min_dist = 1.6f;
+    env->reward_max_dist = 77.0f;
+    env->dist_decay = 0.15f;
 
-    env->pos_const = unpack(kwargs, "pos_const");
-    env->pos_penalty = unpack(kwargs, "pos_penalty");
+    env->w_position = 1.13f;
+    env->w_velocity = 0.15f;
+    env->w_stability = 2.0f;
+    env->w_approach = 2.2f;
+    env->w_hover = 1.5f;
 
-    env->grip_k_min = unpack(kwargs, "grip_k_min");
-    env->grip_k_max = unpack(kwargs, "grip_k_max");
-    env->grip_k_decay = unpack(kwargs, "grip_k_decay");
+    env->pos_const = 0.63f;
+    env->pos_penalty = 0.03f;
+
+    env->grip_k_min = 1.0f;
+    env->grip_k_max = 15.0f;
+    env->grip_k_decay = 0.095f;
 
     init(env);
     return 0;

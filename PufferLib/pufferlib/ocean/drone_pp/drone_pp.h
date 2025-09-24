@@ -66,7 +66,7 @@ struct Client {
 
 typedef struct {
     float *observations;
-    float *actions;
+    float *actions;  // Now 2D velocity commands instead of 4 motor commands
     float *rewards;
     unsigned char *terminals;
 
@@ -105,6 +105,22 @@ typedef struct {
     float grip_k_max;
     float grip_k_decay;
 
+    // PID Controller fields (per agent) - matching Isaac Sim RobustAAC
+    float *target_altitudes;     // Target altitude (5m default)
+    float *alt_integrals;       // Altitude integral terms
+    float *prev_alt_errors;     // Previous altitude errors for derivative
+    float *hover_throttles;     // Hover throttle for each agent
+    float *motor_commands;      // Actual motor commands computed by PID (for rendering)
+
+    // PID gains matching Isaac Sim
+    float kp_alt;    // Altitude proportional gain (0.12)
+    float ki_alt;    // Altitude integral gain (0.02)
+    float kd_alt;    // Altitude derivative gain (0.18)
+    float kp_att;    // Attitude proportional gain (0.35)
+    float kd_att;    // Attitude derivative gain (0.08)
+    float kp_vel;    // Velocity control gain (0.05)
+    float max_tilt;  // Maximum tilt angle (0.05 rad ~3 degrees)
+
     Client *client;
 } DronePP;
 
@@ -114,6 +130,37 @@ void init(DronePP *env) {
     env->ring_buffer = calloc(env->max_rings, sizeof(Ring));
     env->log = (Log){0};
     env->tick = 0;
+
+    // Initialize PID controller arrays
+    env->target_altitudes = calloc(env->num_agents, sizeof(float));
+    env->alt_integrals = calloc(env->num_agents, sizeof(float));
+    env->prev_alt_errors = calloc(env->num_agents, sizeof(float));
+    env->hover_throttles = calloc(env->num_agents, sizeof(float));
+    env->motor_commands = calloc(env->num_agents * 4, sizeof(float));  // 4 motors per agent
+
+    // Set default PID gains (matching Isaac Sim RobustAAC)
+    env->kp_alt = 0.12f;
+    env->ki_alt = 0.02f;
+    env->kd_alt = 0.18f;
+    env->kp_att = 0.35f;
+    env->kd_att = 0.08f;
+    env->kp_vel = 0.05f;
+    env->max_tilt = 0.05f;  // ~3 degrees max tilt
+
+    // Set default target altitude for all agents
+    for (int i = 0; i < env->num_agents; i++) {
+        env->target_altitudes[i] = 5.0f;  // 5m default altitude
+        env->alt_integrals[i] = 0.0f;
+        env->prev_alt_errors[i] = 0.0f;
+
+        // Calculate hover throttle for each agent
+        Drone *agent = &env->agents[i];
+        float hover_force = agent->params.mass * agent->params.gravity;
+        float hover_force_per_motor = hover_force / 4.0f;
+        float hover_rpm = sqrtf(hover_force_per_motor / agent->params.k_thrust);
+        float hover_throttle = (hover_rpm / agent->params.max_rpm) * 2.0f - 1.0f;
+        env->hover_throttles[i] = clampf(hover_throttle, -1.0f, 1.0f);
+    }
 }
 
 void add_log(DronePP *env, int idx, bool oob) {
@@ -192,13 +239,16 @@ void compute_observations(DronePP *env) {
         env->observations[idx++] = agent->state.rpms[2] / agent->params.max_rpm;
         env->observations[idx++] = agent->state.rpms[3] / agent->params.max_rpm;
 
+        // ISAAC SIM COMPATIBLE OBSERVATION SPACE
+        // Position relative to environment origin (0,0,0) - matches Isaac Sim
         env->observations[idx++] = agent->state.pos.x / GRID_X;
         env->observations[idx++] = agent->state.pos.y / GRID_Y;
         env->observations[idx++] = agent->state.pos.z / GRID_Z;
 
-        float dx = agent->target_pos.x - agent->state.pos.x;
-        float dy = agent->target_pos.y - agent->state.pos.y;
-        float dz = agent->target_pos.z - agent->state.pos.z;
+        // Target relative position - matches Isaac Sim dxyz calculation
+        float dx = agent->drop_pos.x - agent->state.pos.x;
+        float dy = agent->drop_pos.y - agent->state.pos.y;
+        float dz = agent->drop_pos.z - agent->state.pos.z;
         env->observations[idx++] = clampf(dx, -1.0f, 1.0f);
         env->observations[idx++] = clampf(dy, -1.0f, 1.0f);
         env->observations[idx++] = clampf(dz, -1.0f, 1.0f);
@@ -206,54 +256,31 @@ void compute_observations(DronePP *env) {
         env->observations[idx++] = dy / GRID_Y;
         env->observations[idx++] = dz / GRID_Z;
 
-        env->observations[idx++] = agent->last_collision_reward;
-        env->observations[idx++] = agent->last_target_reward;
-        env->observations[idx++] = agent->last_abs_reward;
-        // todo add other rewards like vel stab approach hover etc
+        // Last rewards - Isaac Sim uses zeros for unused rewards
+        env->observations[idx++] = 0.0f; // last_collision_reward (unused in Isaac Sim)
+        env->observations[idx++] = 0.0f; // last_target_reward (unused in Isaac Sim)
+        env->observations[idx++] = 0.0f; // last_abs_reward (unused in Isaac Sim)
 
-        // Multiagent obs
-        Drone* nearest = nearest_drone(env, agent);
-        if (env->num_agents > 1) {
-            env->observations[idx++] = clampf(nearest->state.pos.x - agent->state.pos.x, -1.0f, 1.0f);
-            env->observations[idx++] = clampf(nearest->state.pos.y - agent->state.pos.y, -1.0f, 1.0f);
-            env->observations[idx++] = clampf(nearest->state.pos.z - agent->state.pos.z, -1.0f, 1.0f);
-        } else {
-            env->observations[idx++] = 0.0f;
-            env->observations[idx++] = 0.0f;
-            env->observations[idx++] = 0.0f;
-        }
+        // Nearest drone relative position - matches Isaac Sim (single agent = zeros)
+        env->observations[idx++] = 0.0f;
+        env->observations[idx++] = 0.0f;
+        env->observations[idx++] = 0.0f;
 
-        // Ring obs
-        if (env->task == TASK_RACE) {
-            Ring ring = env->ring_buffer[agent->ring_idx];
-            Vec3 to_ring = quat_rotate(q_inv, sub3(ring.pos, agent->state.pos));
-            Vec3 ring_norm = quat_rotate(q_inv, ring.normal);
-            env->observations[idx++] = to_ring.x / GRID_X;
-            env->observations[idx++] = to_ring.y / GRID_Y;
-            env->observations[idx++] = to_ring.z / GRID_Z;
-            env->observations[idx++] = ring_norm.x;
-            env->observations[idx++] = ring_norm.y;
-            env->observations[idx++] = ring_norm.z;
-            env->observations[idx++] = 0.0f; // TASK_PP2
-        } else if (env->task == TASK_PP2) {
-            Vec3 to_box = quat_rotate(q_inv, sub3(agent->box_pos, agent->state.pos));
-            Vec3 to_drop = quat_rotate(q_inv, sub3(agent->drop_pos, agent->state.pos));
-            env->observations[idx++] = to_box.x / GRID_X;
-            env->observations[idx++] = to_box.y / GRID_Y;
-            env->observations[idx++] = to_box.z / GRID_Z;
-            env->observations[idx++] = to_drop.x / GRID_X;
-            env->observations[idx++] = to_drop.y / GRID_Y;
-            env->observations[idx++] = to_drop.z / GRID_Z;
-            env->observations[idx++] = 1.0f; // TASK_PP2
-         } else {
-            env->observations[idx++] = 0.0f;
-            env->observations[idx++] = 0.0f;
-            env->observations[idx++] = 0.0f;
-            env->observations[idx++] = 0.0f;
-            env->observations[idx++] = 0.0f;
-            env->observations[idx++] = 0.0f;
-            env->observations[idx++] = 0.0f; // TASK_PP2
-        }
+        // ALWAYS use PP2 task observations to match Isaac Sim
+        // Isaac Sim: to_box_b (body frame box position)
+        Vec3 to_box = quat_rotate(q_inv, sub3(agent->box_pos, agent->state.pos));
+        env->observations[idx++] = to_box.x / GRID_X;
+        env->observations[idx++] = to_box.y / GRID_Y;
+        env->observations[idx++] = to_box.z / GRID_Z;
+
+        // Isaac Sim: to_drop_b (body frame drop position)
+        Vec3 to_drop = quat_rotate(q_inv, sub3(agent->drop_pos, agent->state.pos));
+        env->observations[idx++] = to_drop.x / GRID_X;
+        env->observations[idx++] = to_drop.y / GRID_Y;
+        env->observations[idx++] = to_drop.z / GRID_Z;
+
+        // Isaac Sim: PP2 flag (always 1.0)
+        env->observations[idx++] = 1.0f;
     }
 }
 
@@ -532,7 +559,7 @@ void reset_agent(DronePP* env, Drone *agent, int idx) {
 void c_reset(DronePP *env) {
     env->tick = 0;
     //env->task = rand() % (TASK_N - 1);
-    
+
     if (rand() % 4) {
         env->task = TASK_PP2; //CHOOSE TASK
     } else {
@@ -544,6 +571,18 @@ void c_reset(DronePP *env) {
         Drone *agent = &env->agents[i];
         reset_agent(env, agent, i);
         set_target(env, i);
+
+        // Reset PID controller states
+        env->alt_integrals[i] = 0.0f;
+        env->prev_alt_errors[i] = 0.0f;
+        env->target_altitudes[i] = 5.0f;  // Reset to 5m default altitude
+
+        // Recalculate hover throttle in case agent parameters changed
+        float hover_force = agent->params.mass * agent->params.gravity;
+        float hover_force_per_motor = hover_force / 4.0f;
+        float hover_rpm = sqrtf(hover_force_per_motor / agent->params.k_thrust);
+        float hover_throttle = (hover_rpm / agent->params.max_rpm) * 2.0f - 1.0f;
+        env->hover_throttles[i] = clampf(hover_throttle, -1.0f, 1.0f);
     }
 
     for (int i = 0; i < env->max_rings; i++) {
@@ -570,6 +609,100 @@ void c_reset(DronePP *env) {
     compute_observations(env);
 }
 
+// PID Controller that converts 2D velocity commands to 4 motor commands
+// Matches Isaac Sim RobustAAC implementation
+void pid_control(DronePP *env, int agent_idx, float vx_cmd, float vy_cmd, float* motor_actions) {
+    Drone *agent = &env->agents[agent_idx];
+
+    // Get current state
+    float current_altitude = agent->state.pos.z;
+    float target_altitude = env->target_altitudes[agent_idx];
+
+    // Get velocity in body frame
+    Quat q_inv = quat_inverse(agent->state.quat);
+    Vec3 vel_body = quat_rotate(q_inv, agent->state.vel);
+    float climb_rate = agent->state.vel.z;
+
+    // Get drone's up vector in world frame
+    Vec3 up_body = {0.0f, 0.0f, 1.0f};
+    Vec3 up_world = quat_rotate(agent->state.quat, up_body);
+
+    // Calculate roll and pitch from quaternion
+    float roll = atan2f(2.0f * (agent->state.quat.w * agent->state.quat.x +
+                                agent->state.quat.y * agent->state.quat.z),
+                       1.0f - 2.0f * (agent->state.quat.x * agent->state.quat.x +
+                                     agent->state.quat.y * agent->state.quat.y));
+    float pitch = asinf(clampf(2.0f * (agent->state.quat.w * agent->state.quat.y -
+                               agent->state.quat.z * agent->state.quat.x), -1.0f, 1.0f));
+
+    // ALTITUDE CONTROL (PID)
+    float alt_error = target_altitude - current_altitude;
+
+    // Update integral (with anti-windup)
+    env->alt_integrals[agent_idx] += alt_error * DT;
+    env->alt_integrals[agent_idx] = clampf(env->alt_integrals[agent_idx], -2.0f, 2.0f);
+
+    // Calculate derivative
+    float alt_error_rate = (alt_error - env->prev_alt_errors[agent_idx]) / DT;
+    env->prev_alt_errors[agent_idx] = alt_error;
+
+    // PID altitude control
+    float altitude_correction = env->kp_alt * alt_error +
+                               env->ki_alt * env->alt_integrals[agent_idx] -
+                               env->kd_alt * climb_rate;
+    altitude_correction = clampf(altitude_correction, -0.15f, 0.12f);
+
+    // Base thrust
+    float base_thrust = env->hover_throttles[agent_idx] + altitude_correction;
+
+    // VELOCITY CONTROL (converts velocity commands to desired tilt)
+    float desired_roll = -vy_cmd * env->kp_vel;  // Negative for correct direction
+    float desired_pitch = vx_cmd * env->kp_vel;
+
+    // Limit desired tilt angles
+    desired_roll = clampf(desired_roll, -env->max_tilt, env->max_tilt);
+    desired_pitch = clampf(desired_pitch, -env->max_tilt, env->max_tilt);
+
+    // ATTITUDE CONTROL (PD controller)
+    float roll_error = desired_roll - roll;
+    float pitch_error = desired_pitch - pitch;
+
+    // Angular velocities in body frame
+    float roll_rate = agent->state.omega.x;
+    float pitch_rate = agent->state.omega.y;
+
+    // PD attitude control
+    float roll_correction = env->kp_att * roll_error - env->kd_att * roll_rate;
+    float pitch_correction = env->kp_att * pitch_error - env->kd_att * pitch_rate;
+
+    // Clamp corrections
+    roll_correction = clampf(roll_correction, -0.3f, 0.3f);
+    pitch_correction = clampf(pitch_correction, -0.3f, 0.3f);
+
+    // Tilt protection - reduce thrust if tilted too much
+    float tilt_angle = acosf(clampf(up_world.z, -1.0f, 1.0f));
+    if (tilt_angle > 0.52f) {  // 30 degrees
+        float tilt_factor = fmaxf(0.5f, 1.0f - (tilt_angle - 0.52f) / 0.52f);
+        base_thrust *= tilt_factor;
+    }
+
+    // Motor mixing: [Front(+Y), Right(+X), Back(-Y), Left(-X)]
+    motor_actions[0] = base_thrust + pitch_correction;  // Front motor
+    motor_actions[1] = base_thrust + roll_correction;   // Right motor
+    motor_actions[2] = base_thrust - pitch_correction;  // Back motor
+    motor_actions[3] = base_thrust - roll_correction;   // Left motor
+
+    // Final safety clipping
+    for (int i = 0; i < 4; i++) {
+        motor_actions[i] = clampf(motor_actions[i], -1.0f, 1.0f);
+    }
+
+    // Store motor commands for rendering
+    for (int j = 0; j < 4; j++) {
+        env->motor_commands[agent_idx * 4 + j] = motor_actions[j];
+    }
+}
+
 void c_step(DronePP *env) {
     env->tick = (env->tick + 1) % HORIZON;
     //env->log.dist = 0.0f;
@@ -579,8 +712,20 @@ void c_step(DronePP *env) {
         env->rewards[i] = 0;
         env->terminals[i] = 0;
 
-        float* atn = &env->actions[4*i];
-        move_drone(agent, atn);
+        // Get 2D velocity commands from the RL agent (instead of 4 motor commands)
+        float vx_cmd = env->actions[2*i];      // Forward/backward velocity command
+        float vy_cmd = env->actions[2*i + 1];  // Left/right velocity command
+
+        // Scale velocity commands (assuming [-1, 1] input range)
+        vx_cmd *= 2.0f;  // Scale to max 2 m/s
+        vy_cmd *= 2.0f;  // Scale to max 2 m/s
+
+        // Use PID controller to convert velocity commands to motor actions
+        float motor_actions[4];
+        pid_control(env, i, vx_cmd, vy_cmd, motor_actions);
+
+        // Move drone with PID-computed motor actions
+        move_drone(agent, motor_actions);
 
         bool out_of_bounds = agent->state.pos.x < -GRID_X || agent->state.pos.x > GRID_X ||
                              agent->state.pos.y < -GRID_Y || agent->state.pos.y > GRID_Y ||
@@ -901,7 +1046,7 @@ void c_render(DronePP *env) {
         }
     }
     env->render = true;
-    env->grip_k_max = 1.0f
+    env->grip_k_max = 1.0f;
     env->grip_k_min = 1.0f;
     if (WindowShouldClose()) {
         c_close(env);
@@ -957,10 +1102,10 @@ void c_render(DronePP *env) {
         // draws drone body
         DrawSphere((Vector3){agent->state.pos.x, agent->state.pos.y, agent->state.pos.z}, 0.3f, agent->color);
 
-        // draws rotors according to thrust
+        // draws rotors according to thrust (using stored motor commands from PID)
         float T[4];
         for (int j = 0; j < 4; j++) {
-            float rpm = (env->actions[4*i + j] + 1.0f) * 0.5f * agent->params.max_rpm;
+            float rpm = (env->motor_commands[4*i + j] + 1.0f) * 0.5f * agent->params.max_rpm;
             T[j] = agent->params.k_thrust * rpm * rpm;
         }
 
@@ -981,7 +1126,7 @@ void c_render(DronePP *env) {
             Vector3 rotor_pos = {agent->state.pos.x + world_off.x, agent->state.pos.y + world_off.y,
                                  agent->state.pos.z + world_off.z};
 
-            float rpm = (env->actions[4*i + j] + 1.0f) * 0.5f * agent->params.max_rpm;
+            float rpm = (env->motor_commands[4*i + j] + 1.0f) * 0.5f * agent->params.max_rpm;
             float intensity = 0.75f + 0.25f * (rpm / agent->params.max_rpm);
 
             Color rotor_color = (Color){(unsigned char)(base_colors[j].r * intensity),

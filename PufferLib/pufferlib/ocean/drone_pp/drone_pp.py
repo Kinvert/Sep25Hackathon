@@ -7,31 +7,39 @@ from pufferlib.ocean.drone_pp import binding
 class DronePP(pufferlib.PufferEnv):
     def __init__(
         self,
-        num_envs=16,
-        num_drones=64,
-        max_rings=5,
+        # Training parameters (don't affect physics)
+        num_envs=24,  # Can train with many envs
+        num_drones=64,  # Can train with many drones per env
 
+        # ALL PHYSICS MUST MATCH ISAAC SIM EXACTLY
+        # These are ignored - using hardcoded Isaac Sim values in C
+        max_rings=5,
         reward_min_dist=1.6,
         reward_max_dist=77.0,
         dist_decay=0.15,
-
         w_position=1.13,
         w_velocity=0.15,
         w_stability=2.0,
         w_approach=2.2,
         w_hover=1.5,
-
         pos_const=0.63,
         pos_penalty=0.03,
-
         grip_k_min=1.0,
         grip_k_max=15.0,
         grip_k_decay=0.095,
+
+        # Accept any config params to avoid errors
+        box_base_density=None,
+        box_k_growth=None,
+        reward_grip=None,
+        reward_ho_drop=None,
+        reward_hover=None,
 
         render_mode=None,
         report_interval=1024,
         buf=None,
         seed=0,
+        **kwargs,  # Catch any other config params
     ):
         self.single_observation_space = gymnasium.spaces.Box(
             low=-1,
@@ -40,8 +48,10 @@ class DronePP(pufferlib.PufferEnv):
             dtype=np.float32,
         )
 
+        # Changed from 4 motor commands to 2 velocity commands (vx, vy)
+        # PID controller handles altitude/attitude automatically
         self.single_action_space = gymnasium.spaces.Box(
-            low=-1, high=1, shape=(4,), dtype=np.float32
+            low=-1, high=1, shape=(2,), dtype=np.float32
         )
 
         self.num_agents = num_envs*num_drones
@@ -54,32 +64,16 @@ class DronePP(pufferlib.PufferEnv):
 
         c_envs = []
         for i in range(num_envs):
+            # Actions are now 2D velocity commands per agent (not 4 motor commands)
+            # Isaac Sim compatible - minimal parameters only
             c_envs.append(binding.env_init(
                 self.observations[i*num_drones:(i+1)*num_drones],
-                self.actions[i*num_drones:(i+1)*num_drones],
+                self.actions[i*num_drones:(i+1)*num_drones],  # PufferEnv already allocates correct size
                 self.rewards[i*num_drones:(i+1)*num_drones],
                 self.terminals[i*num_drones:(i+1)*num_drones],
                 self.truncations[i*num_drones:(i+1)*num_drones],
                 i,
                 num_agents=num_drones,
-                max_rings=max_rings,
-
-                reward_min_dist=reward_min_dist,
-                reward_max_dist=reward_max_dist,
-                dist_decay=dist_decay,
-
-                w_position=w_position,
-                w_velocity=w_velocity,
-                w_stability=w_stability,
-                w_approach=w_approach,
-                w_hover=w_hover,
-
-                pos_const=pos_const,
-                pos_penalty=pos_penalty,
-
-                grip_k_min=grip_k_min,
-                grip_k_max=grip_k_max,
-                grip_k_decay=grip_k_decay
             ))
 
         self.c_envs = binding.vectorize(*c_envs)
