@@ -31,7 +31,7 @@
 #define BASE_GRAVITY 9.81f   // m/s^2
 #define BASE_MAX_RPM 750.0f  // rad/s
 #define BASE_MAX_VEL 50.0f   // m/s
-#define BASE_MAX_OMEGA 50.0f // rad/s
+#define BASE_MAX_OMEGA 6.3f  // rad/s
 #define BASE_K_MOT 0.1f      // s (Motor lag constant)
 #define BASE_J_MOT 1e-5f     // kgm^2 (Motor rotational inertia)
 
@@ -39,12 +39,17 @@
 #define GRID_X 30.0f
 #define GRID_Y 30.0f
 #define GRID_Z 10.0f
+#define INV_GRID_X 0.33333f
+#define INV_GRID_Y 0.33333f
+#define INV_GRID_Z 0.1f
+
 #define MARGIN_X (GRID_X - 1)
 #define MARGIN_Y (GRID_Y - 1)
 #define MARGIN_Z (GRID_Z - 1)
 #define V_TARGET 0.05f
 #define DT 0.05f
 #define DT_RNG 0.0f
+#define MAX_THRUST_TO_MASS_RATION 0.5f
 
 // Corner to corner distance
 #define MAX_DIST sqrtf((2*GRID_X)*(2*GRID_X) + (2*GRID_Y)*(2*GRID_Y) + (2*GRID_Z)*(2*GRID_Z))
@@ -63,6 +68,7 @@ struct Log {
     float perfect_grip;
     float delivered;
     float perfect_deliv;
+    float perfect_now;
     float to_pickup;
     float ho_pickup;
     float de_pickup;
@@ -231,8 +237,11 @@ typedef struct {
     float b_drag; // linear drag coefficient
     float gravity; // m/s^2
     float max_rpm; // rad/s
+    float inv_max_rpm; // s/rad
     float max_vel; // m/s
+    float inv_max_vel; // s/m
     float max_omega; // rad/s
+    float inv_max_omega; // s/rad
     float k_mot; // s
     float j_mot; // kgm^2
 } Params;
@@ -252,11 +261,14 @@ typedef struct {
 
     // PP Pick and Place
     Vec3 box_pos;
+    Vec3 box_vel;
     Vec3 drop_pos;
     bool gripping;
     bool perfect_grip;
     bool delivered;
     bool perfect_deliv;
+    float perfect_deliveries;
+    bool perfect_now;
     bool has_delivered;
     float grip_height;
     bool approaching_pickup;
@@ -278,6 +290,18 @@ typedef struct {
     float score;
     int ring_idx;
     float jitter;
+
+    float base_mass;
+    float base_ixx;
+    float base_iyy;
+    float base_izz;
+    float base_k_drag;
+    float base_b_drag;
+    float box_size;
+    float box_base_mass;
+    float box_mass;
+    float box_mass_max;
+    bool box_physics_on;
 } Drone;
 
 
@@ -316,9 +340,24 @@ void init_drone(Drone* drone, float size, float dr) {
     // RPM ~ 1/x
     float rpm_scale = (BASE_ARM_LEN) / (drone->params.arm_len);
     drone->params.max_rpm = BASE_MAX_RPM * rpm_scale * rndf(1.0f - dr, 1.0f + dr);
+    float max_thrust = 4.0f * drone->params.k_thrust * powf(drone->params.max_rpm, 2.0f);
+    float max_total_mass = (MAX_THRUST_TO_MASS_RATION * max_thrust) / drone->params.gravity;
+    while (max_thrust < 2.0f * drone->params.mass * drone->params.gravity) {
+        drone->params.max_rpm = drone->params.max_rpm * 2.0f;
+        max_thrust = 4.0f * drone->params.k_thrust * powf(drone->params.max_rpm, 2.0f);
+        max_total_mass = (MAX_THRUST_TO_MASS_RATION * max_thrust) / drone->params.gravity;
+    }
+    if (drone->params.max_rpm < 0.001) drone->params.max_rpm += 0.001;
+    drone->params.inv_max_rpm = 1.0f / drone->params.max_rpm;
 
     drone->params.max_vel = BASE_MAX_VEL;
+    if (drone->params.max_vel < 0.001) drone->params.max_vel += 0.001;
+    drone->params.inv_max_vel = 1.0f / drone->params.max_vel;
     drone->params.max_omega = BASE_MAX_OMEGA;
+    if (drone->params.max_omega < 0.001) drone->params.max_omega += 0.001;
+    drone->params.inv_max_omega = 1.0f / drone->params.max_omega;
+
+    drone->box_mass_max = max_total_mass - drone->params.mass;
 
     drone->params.k_mot = BASE_K_MOT * rndf(1.0f - dr, 1.0f + dr);
     drone->params.j_mot = BASE_J_MOT * I_scale * rndf(1.0f - dr, 1.0f + dr);

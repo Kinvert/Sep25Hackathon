@@ -105,3 +105,32 @@
     - vf_coef: 2
     - vtrace_c_clip: 1
     - vtrace_rho_clip: 1
+
+- pp15 moving target
+  - 0.1m/s commit eb69dbc
+    - exalted-dew-281 sillnmxr
+      - 4075 SLOW though
+    - visionary-armadillo-214 dcmhw4hk
+      - 1343 but FAST
+    - distinctive-sea-343 yjag4ok4
+      - BAD BAD BAD find out why
+      - high grip low deliver
+- pp16 0.2m/s moving target
+  - morning-plasma-186 ews85b3u
+    - 12457 but fake
+    - figure out how it gamed the system
+  - visionary-jazz-169 84mdrypx
+    - 7690 but fake
+  - =====================================
+  - prime-wildflower-54 17pf0z7b
+    - 5488 REAL
+  - =====================================
+  - divine-dust-193
+    - FAKE
+- pp17 episode decay not ticks
+  - ======================
+  - firm-bird-2 mrdo4x22
+    - 9528 REAL
+  - ======================
+  - lyric-forest-50 gxjpowu9
+    - 4195 real it's ok
