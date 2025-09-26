@@ -729,7 +729,7 @@ void c_step(DronePP *env) {
                 float z_dist_above_box = agent->state.pos.z - agent->box_pos.z;
 
                 if (xy_dist_to_box < 2.0f && agent->state.pos.z < agent->target_pos.z + 10.0f) {
-                    reward -= 0.001f * env->episode_num - 0.001f;
+                    reward -= 0.01f * env->episode_num - 0.01f;
                 }
 
                 // Phase 1 Box Hover
@@ -789,7 +789,7 @@ void c_step(DronePP *env) {
                 float z_dist_above_drop = agent->state.pos.z - agent->drop_pos.z;
 
                 if (xy_dist_to_drop < 2.0f && agent->state.pos.z < agent->target_pos.z + 10.0f) {
-                    reward -= 0.001f * env->episode_num - 0.001f;
+                    reward -= 0.01f * env->episode_num - 0.01f;
                 }
 
                 if (!agent->box_physics_on && agent->state.vel.z > 0.3f) {
