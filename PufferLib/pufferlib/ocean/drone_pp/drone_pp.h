@@ -728,6 +728,10 @@ void c_step(DronePP *env) {
                                             powf(agent->state.pos.y - agent->box_pos.y, 2));
                 float z_dist_above_box = agent->state.pos.z - agent->box_pos.z;
 
+                if (xy_dist_to_box < 2.0f && agent->state.pos.z < agent->target_pos.z + 10.0f) {
+                    reward -= 0.001f * env->episode_num - 0.001f;
+                }
+
                 // Phase 1 Box Hover
                 if (!agent->hovering_pickup) {
                     if (DEBUG > 1) printf("  Phase1\n");
@@ -783,6 +787,10 @@ void c_step(DronePP *env) {
                 float xy_dist_to_drop = sqrtf(powf(agent->state.pos.x - agent->drop_pos.x, 2) +
                                             powf(agent->state.pos.y - agent->drop_pos.y, 2));
                 float z_dist_above_drop = agent->state.pos.z - agent->drop_pos.z;
+
+                if (xy_dist_to_drop < 2.0f && agent->state.pos.z < agent->target_pos.z + 10.0f) {
+                    reward -= 0.001f * env->episode_num - 0.001f;
+                }
 
                 if (!agent->box_physics_on && agent->state.vel.z > 0.3f) {
                     update_gripping_physics(agent);
