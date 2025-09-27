@@ -21,14 +21,14 @@
 #define TASK_CONGO 5
 #define TASK_FLAG 6
 #define TASK_RACE 7
-#define TASK_PP2 8
+#define TASK_PP 8
 #define TASK_N 9
 
 #define DEBUG 0
 
 char* TASK_NAMES[TASK_N] = {
     "Idle", "Hover", "Orbit", "Follow",
-    "Cube", "Congo", "FLAG", "Race", "PP2"
+    "Cube", "Congo", "FLAG", "Race", "PP"
 };
 
 #define R (Color){255, 0, 0, 255}
@@ -250,12 +250,12 @@ void compute_observations(DronePP *env) {
             env->observations[idx++] = ring_norm.x;
             env->observations[idx++] = ring_norm.y;
             env->observations[idx++] = ring_norm.z;
-            env->observations[idx++] = 0.0f; // TASK_PP2
+            env->observations[idx++] = 0.0f; // TASK_PP
             env->observations[idx++] = 0.0f;
             env->observations[idx++] = 0.0f;
             env->observations[idx++] = 0.0f;
 
-        } else if (env->task == TASK_PP2) {
+        } else if (env->task == TASK_PP) {
             Vec3 to_box = quat_rotate(q_inv, sub3(agent->box_pos, agent->state.pos));
             Vec3 to_drop = quat_rotate(q_inv, sub3(agent->drop_pos, agent->state.pos));
             env->observations[idx++] = to_box.x * INV_GRID_X;
@@ -264,7 +264,7 @@ void compute_observations(DronePP *env) {
             env->observations[idx++] = to_drop.x * INV_GRID_X;
             env->observations[idx++] = to_drop.y * INV_GRID_Y;
             env->observations[idx++] = to_drop.z * INV_GRID_Z;
-            env->observations[idx++] = 1.0f; // TASK_PP2
+            env->observations[idx++] = 1.0f; // TASK_PP
             float dvx = agent->target_vel.x - agent->state.vel.x;
             float dvy = agent->target_vel.y - agent->state.vel.y;
             float dvz = agent->target_vel.z - agent->state.vel.z;
@@ -278,7 +278,7 @@ void compute_observations(DronePP *env) {
             env->observations[idx++] = 0.0f;
             env->observations[idx++] = 0.0f;
             env->observations[idx++] = 0.0f;
-            env->observations[idx++] = 0.0f; // TASK_PP2
+            env->observations[idx++] = 0.0f; // TASK_PP
             env->observations[idx++] = 0.0f;
             env->observations[idx++] = 0.0f;
             env->observations[idx++] = 0.0f;
@@ -385,7 +385,7 @@ void set_target_race(DronePP* env, int idx) {
     agent->target_vel = (Vec3){0.0f, 0.0f, 0.0f};
 }
 
-void set_target_pp2(DronePP* env, int idx) {
+void set_target_pp(DronePP* env, int idx) {
     Drone* agent = &env->agents[idx];
     if (!agent->gripping) {
         agent->target_pos = (Vec3){agent->box_pos.x, agent->box_pos.y, agent->box_pos.z};
@@ -413,15 +413,15 @@ void set_target(DronePP* env, int idx) {
         set_target_flag(env, idx);
     } else if (env->task == TASK_RACE) {
         set_target_race(env, idx);
-    } else if (env->task == TASK_PP2) {
-        set_target_pp2(env, idx);
+    } else if (env->task == TASK_PP) {
+        set_target_pp(env, idx);
     }
 }
 
 float compute_reward(DronePP* env, Drone *agent, bool collision) {
     if (DEBUG > 2) printf("  Compute Reward\n");
     Vec3 tgt = agent->target_pos;
-    if (env->task == TASK_PP2) tgt = agent->hidden_pos;
+    if (env->task == TASK_PP) tgt = agent->hidden_pos;
 
     Vec3 pos_error = {agent->state.pos.x - tgt.x, agent->state.pos.y - tgt.y, agent->state.pos.z - tgt.z};
     float dist = sqrtf(pos_error.x * pos_error.x + pos_error.y * pos_error.y + pos_error.z * pos_error.z) + 0.00000001;
@@ -500,7 +500,7 @@ float compute_reward(DronePP* env, Drone *agent, bool collision) {
     return delta_reward;
 }
 
-void reset_pp2(DronePP* env, Drone *agent, int idx) {
+void reset_pp(DronePP* env, Drone *agent, int idx) {
     agent->box_pos = (Vec3){rndf(-MARGIN_X, MARGIN_X), rndf(-MARGIN_Y, MARGIN_Y), rndf(-GRID_Z + 0.5f, -GRID_Z + 3.0f)};
     agent->drop_pos = (Vec3){rndf(-MARGIN_X, MARGIN_X), rndf(-MARGIN_Y, MARGIN_Y), -GRID_Z + 0.5f};
     agent->box_vel = (Vec3){0.0f, 0.0f, 0.0f};
@@ -566,8 +566,8 @@ void reset_agent(DronePP* env, Drone *agent, int idx) {
     agent->prev_pos = agent->state.pos;
     agent->spawn_pos = agent->state.pos;
 
-    if (env->task == TASK_PP2) {
-        reset_pp2(env, agent, idx);
+    if (env->task == TASK_PP) {
+        reset_pp(env, agent, idx);
     }
 
     compute_reward(env, agent, env->task != TASK_RACE);
@@ -613,11 +613,11 @@ void c_reset(DronePP *env) {
     //env->task = rand() % (TASK_N - 1);
     
     if (rand() % 4) {
-        env->task = TASK_PP2; //CHOOSE TASK
+        env->task = TASK_PP; //CHOOSE TASK
     } else {
         env->task = rand() % (TASK_N - 1);
     }
-    env->task = TASK_PP2;
+    env->task = TASK_PP;
 
     for (int i = 0; i < env->num_agents; i++) {
         Drone *agent = &env->agents[i];
@@ -666,7 +666,7 @@ void c_step(DronePP *env) {
                              agent->state.pos.y < -GRID_Y || agent->state.pos.y > GRID_Y ||
                              agent->state.pos.z < -GRID_Z || agent->state.pos.z > GRID_Z;
 
-        if (!(env->task == TASK_PP2)) move_target(env, agent);
+        if (!(env->task == TASK_PP)) move_target(env, agent);
 
         float reward = 0.0f;
         if (env->task == TASK_RACE) {
@@ -683,7 +683,7 @@ void c_step(DronePP *env) {
         // =========================================================================================================================================
         // =========================================================================================================================================
         // =========================================================================================================================================
-        } else if (env->task == TASK_PP2) {
+        } else if (env->task == TASK_PP) {
             int db_tick_perfect_grip = -1;
             float db_grip_k_at_grip = -1.0f;
             float db_box_x_at_grip = -1.0f;
@@ -715,7 +715,7 @@ void c_step(DronePP *env) {
             env->box_k = clampf(env->episode_num * env->box_k_growth + env->box_k_min, env->box_k_min, env->box_k_max);
             agent->box_mass = env->box_k * agent->box_base_mass;
             float k = env->grip_k;
-            if (DEBUG > 1) printf("  PP2\n");
+            if (DEBUG > 1) printf("  PP\n");
             if (DEBUG > 1) printf("    K = %.3f\n", k);
             if (DEBUG > 1) printf("    Hidden = %.3f %.3f %.3f\n", agent->hidden_pos.x, agent->hidden_pos.y, agent->hidden_pos.z);
             if (DEBUG > 1) printf("    HiddenV = %.3f %.3f %.3f\n", agent->hidden_vel.x, agent->hidden_vel.y, agent->hidden_vel.z);
@@ -727,6 +727,10 @@ void c_step(DronePP *env) {
                 float xy_dist_to_box = sqrtf(powf(agent->state.pos.x - agent->box_pos.x, 2) +
                                             powf(agent->state.pos.y - agent->box_pos.y, 2));
                 float z_dist_above_box = agent->state.pos.z - agent->box_pos.z;
+
+                if (xy_dist_to_box < 2.0f && agent->state.pos.z < agent->target_pos.z + 10.0f) {
+                    reward -= 0.01f * env->episode_num - 0.01f;
+                }
 
                 // Phase 1 Box Hover
                 if (!agent->hovering_pickup) {
@@ -784,6 +788,10 @@ void c_step(DronePP *env) {
                                             powf(agent->state.pos.y - agent->drop_pos.y, 2));
                 float z_dist_above_drop = agent->state.pos.z - agent->drop_pos.z;
 
+                if (xy_dist_to_drop < 2.0f && agent->state.pos.z < agent->target_pos.z + 10.0f) {
+                    reward -= 0.01f * env->episode_num - 0.01f;
+                }
+
                 if (!agent->box_physics_on && agent->state.vel.z > 0.3f) {
                     update_gripping_physics(agent);
                 }
@@ -826,7 +834,7 @@ void c_step(DronePP *env) {
                             agent->perfect_now = true;
                             agent->color = (Color){0, 255, 0, 255}; // Green
                         }
-                        reset_pp2(env, agent, i);
+                        reset_pp(env, agent, i);
                     }
                 }
             }
@@ -1027,11 +1035,11 @@ void c_render(DronePP *env) {
         }
     }
     env->render = true;
-    //env->grip_k_max = 1.0f;
-    //env->grip_k_min = 1.0f;
-    //env->box_k_max = 1.0f;
-    //env->box_k_min = 1.0f;
-    //env->box_k = 1.0f;
+    env->grip_k_max = 1.0f;
+    env->grip_k_min = 1.0f;
+    env->box_k_max = 1.0f;
+    env->box_k_min = 1.0f;
+    env->box_k = 1.0f;
     if (WindowShouldClose()) {
         c_close(env);
         exit(0);
@@ -1157,7 +1165,7 @@ void c_render(DronePP *env) {
         }
     }
 
-    if (env->task == TASK_PP2) {
+    if (env->task == TASK_PP) {
         for (int i = 0; i < env->num_agents; i++) {
             Drone *agent = &env->agents[i];
             Vec3 render_pos = agent->box_pos;
