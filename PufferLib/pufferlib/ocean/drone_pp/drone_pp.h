@@ -436,9 +436,9 @@ float compute_reward(DronePP* env, Drone *agent, bool collision) {
                                       agent->state.omega.y * agent->state.omega.y +
                                       agent->state.omega.z * agent->state.omega.z);
 
-    float proximity_factor = clampf(1.0f - dist / env->reward_dist, 0.0f, 1.0f);
-
     env->reward_dist = clampf(env->tick * -env->dist_decay + env->reward_max_dist, env->reward_min_dist, 100.0f);
+
+    float proximity_factor = clampf(1.0f - dist / env->reward_dist, 0.0f, 1.0f);
 
     float position_reward = clampf(expf(-dist / (env->reward_dist * env->pos_const)), -env->pos_penalty, 1.0f);
 
