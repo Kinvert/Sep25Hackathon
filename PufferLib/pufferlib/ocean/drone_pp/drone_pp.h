@@ -112,6 +112,8 @@ typedef struct {
     float reward_max_dist;
     float reward_min_dist;
 
+    float vel_penalty_clamp;
+
     float w_approach;
     float w_hover;
     float w_position;
@@ -447,7 +449,7 @@ float compute_reward(DronePP* env, Drone *agent, bool collision) {
     float position_reward = clampf(expf(-dist / (env->reward_dist * env->pos_const)), -env->pos_penalty, 1.0f);
 
     // slight reward for 0.05 for example, large penalty for over 0.4
-    float velocity_reward = clampf(proximity_factor * (2.0f * expf(-(vel_magnitude - 0.05f) * 10.0f) - 1.0f), -1.0f, 1.0f);
+    float velocity_reward = clampf(proximity_factor * (2.0f * expf(-(vel_magnitude - 0.05f) * 10.0f) - 1.0f), -env->vel_penalty_clamp, 1.0f);
     if (velocity_reward < 0.0f) velocity_reward = velocity_reward * env->episode_gain;
     if (DEBUG > 2) printf("    velocity_reward = %.3f\n", velocity_reward);
 

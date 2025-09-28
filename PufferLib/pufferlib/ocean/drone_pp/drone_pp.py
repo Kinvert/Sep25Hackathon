@@ -30,6 +30,8 @@ class DronePP(pufferlib.PufferEnv):
         reward_max_dist=65.0,
         reward_min_dist=1.3159451723909112,
 
+        vel_penalty_clamp=0.25,
+
         w_approach=2.4493223157596984,
         w_hover=1.6429730342663187,
         w_position=1.2303854103933083,
@@ -90,6 +92,8 @@ class DronePP(pufferlib.PufferEnv):
 
                 reward_max_dist=reward_max_dist,
                 reward_min_dist=reward_min_dist,
+
+                vel_penalty_clamp=vel_penalty_clamp,
 
                 w_approach=w_approach,
                 w_hover=w_hover,

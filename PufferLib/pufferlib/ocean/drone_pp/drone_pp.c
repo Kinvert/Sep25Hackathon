@@ -140,6 +140,8 @@ int main() {
     env->reward_max_dist = 65.0;
     env->reward_min_dist = 1.3159451723909112;
 
+    env->vel_penalty_clamp = 0.25;
+
     env->w_approach = 2.4493223157596984;
     env->w_hover = 1.6429730342663187;
     env->w_position = 1.2303854103933083;
