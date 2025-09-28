@@ -48,6 +48,8 @@ Color FLAG_COLORS[64] = {
 #undef W
 #undef B
 
+#define EPISODE_GAIN_INCREMENT 0.25f
+
 typedef struct Client Client;
 struct Client {
     Camera3D camera;
@@ -117,6 +119,7 @@ typedef struct {
     float w_velocity;
 
     int episode_num;
+    float episode_gain;
 
     Client *client;
 } DronePP;
@@ -126,6 +129,7 @@ void init(DronePP *env) {
     env->box_k = 0.001f;
     env->box_k_min = 0.001f;
     env->box_k_max = 1.0f;
+    env->episode_gain = 0.0f;
     env->agents = calloc(env->num_agents, sizeof(Drone));
     env->ring_buffer = calloc(env->max_rings, sizeof(Ring));
     env->log = (Log){0};
@@ -443,8 +447,9 @@ float compute_reward(DronePP* env, Drone *agent, bool collision) {
     float position_reward = clampf(expf(-dist / (env->reward_dist * env->pos_const)), -env->pos_penalty, 1.0f);
 
     // slight reward for 0.05 for example, large penalty for over 0.4
-    float velocity_penalty = clampf(proximity_factor * (2.0f * expf(-(vel_magnitude - 0.05f) * 10.0f) - 1.0f), -1.0f, 1.0f);
-    if (DEBUG > 2) printf("    velocity_penalty = %.3f\n", velocity_penalty);
+    float velocity_reward = clampf(proximity_factor * (2.0f * expf(-(vel_magnitude - 0.05f) * 10.0f) - 1.0f), -1.0f, 1.0f);
+    if (velocity_reward < 0.0f) velocity_reward = velocity_reward * env->episode_gain;
+    if (DEBUG > 2) printf("    velocity_reward = %.3f\n", velocity_reward);
 
     float stability_reward = -angular_vel_magnitude * agent->params.inv_max_omega;
 
@@ -480,7 +485,7 @@ float compute_reward(DronePP* env, Drone *agent, bool collision) {
     }
 
     float total_reward = env->w_position * position_reward +
-                        env->w_velocity * velocity_penalty +
+                        env->w_velocity * velocity_reward +
                         env->w_stability * stability_reward +
                         env->w_approach * approach_reward +
                         hover_bonus +
@@ -611,6 +616,7 @@ void update_gripping_physics(Drone* agent) {
 void c_reset(DronePP *env) {
     env->tick = 0;
     env->episode_num += 1;
+    if (env->episode_num > 1) env->episode_gain = clampf(env->episode_gain + EPISODE_GAIN_INCREMENT, 0.0f, 1.0f);
     //env->task = rand() % (TASK_N - 1);
     
     if (rand() % 4) {
