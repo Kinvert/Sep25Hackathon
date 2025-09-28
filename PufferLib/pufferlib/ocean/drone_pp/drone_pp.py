@@ -11,29 +11,30 @@ class DronePP(pufferlib.PufferEnv):
         num_drones=64,
         max_rings=5,
 
-        reward_min_dist=1.3159451723909112,
-        reward_max_dist=65.0,
+        box_base_density=50.0,
+        box_k_growth=0.02,
+
         dist_decay=0.15,
 
-        w_position=1.2303854103933083,
-        w_velocity=0.12632002850721588,
-        w_stability=1.8328041440802467,
-        w_approach=2.4493223157596984,
-        w_hover=1.6429730342663187,
+        grip_k_decay=0.09049941256843744,
+        grip_k_max=17.887758597919266,
+        grip_k_min=1.0,
 
         pos_const=0.6233603728023545,
         pos_penalty=0.03827543428980447,
 
-        grip_k_min=1.0,
-        grip_k_max=17.887758597919266,
-        grip_k_decay=0.09049941256843744,
-
-        box_base_density=50.0,
-        box_k_growth=0.02,
-
-        reward_hover=0.25,
         reward_grip=0.5,
         reward_ho_drop=0.25,
+        reward_hover=0.25,
+
+        reward_max_dist=65.0,
+        reward_min_dist=1.3159451723909112,
+
+        w_approach=2.4493223157596984,
+        w_hover=1.6429730342663187,
+        w_position=1.2303854103933083,
+        w_stability=1.8328041440802467,
+        w_velocity=0.12632002850721588,
 
         render_mode=None,
         report_interval=1024,
@@ -71,29 +72,30 @@ class DronePP(pufferlib.PufferEnv):
                 num_agents=num_drones,
                 max_rings=max_rings,
 
-                reward_min_dist=reward_min_dist,
-                reward_max_dist=reward_max_dist,
+                box_base_density=box_base_density,
+                box_k_growth=box_k_growth,
+
                 dist_decay=dist_decay,
 
-                w_position=w_position,
-                w_velocity=w_velocity,
-                w_stability=w_stability,
-                w_approach=w_approach,
-                w_hover=w_hover,
+                grip_k_decay=grip_k_decay,
+                grip_k_max=grip_k_max,
+                grip_k_min=grip_k_min,
 
                 pos_const=pos_const,
                 pos_penalty=pos_penalty,
 
-                grip_k_min=grip_k_min,
-                grip_k_max=grip_k_max,
-                grip_k_decay=grip_k_decay,
-
-                box_base_density=box_base_density,
-                box_k_growth=box_k_growth,
-
-                reward_hover=reward_hover,
                 reward_grip=reward_grip,
-                reward_ho_drop=reward_ho_drop
+                reward_ho_drop=reward_ho_drop,
+                reward_hover=reward_hover,
+
+                reward_max_dist=reward_max_dist,
+                reward_min_dist=reward_min_dist,
+
+                w_approach=w_approach,
+                w_hover=w_hover,
+                w_position=w_position,
+                w_stability=w_stability,
+                w_velocity=w_velocity
             ))
 
         self.c_envs = binding.vectorize(*c_envs)

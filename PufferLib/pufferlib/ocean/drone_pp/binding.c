@@ -7,29 +7,30 @@ static int my_init(Env *env, PyObject *args, PyObject *kwargs) {
     env->num_agents = unpack(kwargs, "num_agents");
     env->max_rings = unpack(kwargs, "max_rings");
 
-    env->reward_min_dist = unpack(kwargs, "reward_min_dist");
-    env->reward_max_dist = unpack(kwargs, "reward_max_dist");
+    env->box_base_density = unpack(kwargs, "box_base_density");
+    env->box_k_growth = unpack(kwargs, "box_k_growth");
+
     env->dist_decay = unpack(kwargs, "dist_decay");
 
-    env->w_position = unpack(kwargs, "w_position");
-    env->w_velocity = unpack(kwargs, "w_velocity");
-    env->w_stability = unpack(kwargs, "w_stability");
-    env->w_approach = unpack(kwargs, "w_approach");
-    env->w_hover = unpack(kwargs, "w_hover");
+    env->grip_k_decay = unpack(kwargs, "grip_k_decay");
+    env->grip_k_max = unpack(kwargs, "grip_k_max");
+    env->grip_k_min = unpack(kwargs, "grip_k_min");
 
     env->pos_const = unpack(kwargs, "pos_const");
     env->pos_penalty = unpack(kwargs, "pos_penalty");
 
-    env->grip_k_min = unpack(kwargs, "grip_k_min");
-    env->grip_k_max = unpack(kwargs, "grip_k_max");
-    env->grip_k_decay = unpack(kwargs, "grip_k_decay");
-
-    env->box_base_density = unpack(kwargs, "box_base_density");
-    env->box_k_growth = unpack(kwargs, "box_k_growth");
-
-    env->reward_hover = unpack(kwargs, "reward_hover");
     env->reward_grip = unpack(kwargs, "reward_grip");
     env->reward_ho_drop = unpack(kwargs, "reward_ho_drop");
+    env->reward_hover = unpack(kwargs, "reward_hover");
+
+    env->reward_max_dist = unpack(kwargs, "reward_max_dist");
+    env->reward_min_dist = unpack(kwargs, "reward_min_dist");
+
+    env->w_approach = unpack(kwargs, "w_approach");
+    env->w_hover = unpack(kwargs, "w_hover");
+    env->w_position = unpack(kwargs, "w_position");
+    env->w_stability = unpack(kwargs, "w_stability");
+    env->w_velocity = unpack(kwargs, "w_velocity");
 
     init(env);
     return 0;

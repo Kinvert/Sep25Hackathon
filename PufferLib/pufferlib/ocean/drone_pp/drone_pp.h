@@ -86,34 +86,35 @@ typedef struct {
 
     int debug;
 
-    float reward_min_dist;
-    float reward_max_dist;
-    float dist_decay;
-    float reward_dist;
+    float box_base_density;
+    float box_k;
+    float box_k_growth;
+    float box_k_max;
+    float box_k_min;
 
-    float w_position;
-    float w_velocity;
-    float w_stability;
-    float w_approach;
-    float w_hover;
+    float dist_decay;
+
+    float grip_k;
+    float grip_k_decay;
+    float grip_k_max;
+    float grip_k_min;
 
     float pos_const;
     float pos_penalty;
 
-    float grip_k;
-    float grip_k_min;
-    float grip_k_max;
-    float grip_k_decay;
-
-    float box_base_density;
-    float box_k;
-    float box_k_min;
-    float box_k_max;
-    float box_k_growth;
-
-    float reward_hover;
+    float reward_dist;
     float reward_grip;
     float reward_ho_drop;
+    float reward_hover;
+
+    float reward_max_dist;
+    float reward_min_dist;
+
+    float w_approach;
+    float w_hover;
+    float w_position;
+    float w_stability;
+    float w_velocity;
 
     int episode_num;
 
