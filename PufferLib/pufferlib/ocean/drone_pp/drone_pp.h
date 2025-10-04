@@ -88,6 +88,9 @@ typedef struct {
 
     int debug;
 
+    int num_houses;
+    Vec3 *house_positions;
+
     float box_base_density;
     float box_k;
     float box_k_growth;
@@ -1093,17 +1096,66 @@ void c_render(DronePP *env) {
 
     BeginMode3D(client->camera);
 
-    // draws bounding cube
     DrawCubeWires((Vector3){0.0f, 0.0f, 0.0f}, GRID_X * 2.0f,
         GRID_Y * 2.0f, GRID_Z * 2.0f, WHITE);
+
+    float road_width = 6.0f;
+    float road_length = GRID_X * 2.0f;
+    DrawCube((Vector3){0.0f, 0.0f, -GRID_Z + 0.01f}, road_length, road_width, 0.1f, DARKGRAY);
+
+    float stripe_length = 2.0f;
+    float stripe_gap = 2.0f;
+    for (float x = -GRID_X; x < GRID_X; x += stripe_length + stripe_gap) {
+        DrawCube((Vector3){x + stripe_length/2.0f, 0.0f, -GRID_Z + 0.05f}, stripe_length, 0.2f, 0.02f, WHITE);
+    }
+
+    float truck_x = fmodf(env->tick * DT * 1.0f, GRID_Y * 2.0f) - GRID_X;
+
+    DrawCube((Vector3){truck_x - 2.5f, 0.0f, -GRID_Z + 1.25f}, 2.0f, 2.0f, 2.5f, RED); // Cab
+
+    Vector3 flatbed_pos = {truck_x + 1.5f, 0.0f, -GRID_Z + 0.4f};
+    DrawCube(flatbed_pos, 2.0f, 4.0f, -GRID_Z + 0.3f, BROWN);
+
+    DrawCylinder((Vector3){truck_x, -0.9f - 3.0f, -GRID_Z + 0.4f}, 0.4f, 0.4f, 0.2f, 16, BLACK);
+    DrawCylinder((Vector3){truck_x, 0.9f - 3.0f, -GRID_Z + 0.4f}, 0.4f, 0.4f, 0.2f, 16, BLACK);
+    DrawCylinder((Vector3){truck_x, -0.9f + 2.5f, -GRID_Z + 0.4f}, 0.4f, 0.4f, 0.2f, 16, BLACK);
+    DrawCylinder((Vector3){truck_x, 0.9f + 2.5f, -GRID_Z + 0.4f}, 0.4f, 0.4f, 0.2f, 16, BLACK);
+
+    int num_houses = env->num_houses;
+    for (int h = 0; h < num_houses; h++) {
+        float house_y = env->house_positions[h].y;
+        float house_x = env->house_positions[h].x;
+        float house_z = 0.0f;
+
+        DrawCube((Vector3){house_x, house_y, house_z + 1.5f}, 4.0f, 4.0f, 3.0f, BEIGE);
+
+        Vector3 roof_base = {house_x, house_y, house_z + 3.0f};
+        Vector3 roof_peak = {house_x, house_y, house_z + 5.0f};
+        DrawTriangle3D(
+            (Vector3){house_x - 2.0f, house_y - 2.0f, house_z + 3.0f},
+            (Vector3){house_x + 2.0f, house_y - 2.0f, house_z + 3.0f},
+            roof_peak, MAROON);
+        DrawTriangle3D(
+            (Vector3){house_x + 2.0f, house_y - 2.0f, house_z + 3.0f},
+            (Vector3){house_x + 2.0f, house_y + 2.0f, house_z + 3.0f},
+            roof_peak, MAROON);
+        DrawTriangle3D(
+            (Vector3){house_x + 2.0f, house_y + 2.0f, house_z + 3.0f},
+            (Vector3){house_x - 2.0f, house_y + 2.0f, house_z + 3.0f},
+            roof_peak, MAROON);
+        DrawTriangle3D(
+            (Vector3){house_x - 2.0f, house_y + 2.0f, house_z + 3.0f},
+            (Vector3){house_x - 2.0f, house_y - 2.0f, house_z + 3.0f},
+            roof_peak, MAROON);
+
+        DrawCube((Vector3){house_x + 1.2f, house_y + 1.2f, house_z + 4.25f}, 0.5f, 0.5f, 1.5f, DARKBROWN);
+    }
 
     for (int i = 0; i < env->num_agents; i++) {
         Drone *agent = &env->agents[i];
 
-        // draws drone body
         DrawSphere((Vector3){agent->state.pos.x, agent->state.pos.y, agent->state.pos.z}, 0.3f, agent->color);
 
-        // draws rotors according to thrust
         float T[4];
         for (int j = 0; j < 4; j++) {
             float rpm = (env->actions[4*i + j] + 1.0f) * 0.5f * agent->params.max_rpm;
@@ -1118,7 +1170,6 @@ void c_render(DronePP *env) {
                                       {0.0f, +visual_arm_len, 0.0f},
                                       {0.0f, -visual_arm_len, 0.0f}};
 
-        //Color base_colors[4] = {ORANGE, PURPLE, LIME, SKYBLUE};
         Color base_colors[4] = {agent->color, agent->color, agent->color, agent->color};
 
         for (int j = 0; j < 4; j++) {
@@ -1177,10 +1228,21 @@ void c_render(DronePP *env) {
     if (env->task == TASK_PP) {
         for (int i = 0; i < env->num_agents; i++) {
             Drone *agent = &env->agents[i];
+
+            // Draw boxes on truck flatbed (offset to be on the truck)
             Vec3 render_pos = agent->box_pos;
-            DrawCube((Vector3){render_pos.x, render_pos.y, render_pos.z}, agent->box_size, agent->box_size, agent->box_size, BROWN);
-            DrawCube((Vector3){agent->drop_pos.x, agent->drop_pos.y, agent->drop_pos.z}, 0.5f, 0.5f, 0.1f, YELLOW);
-            DrawSphere((Vector3){agent->hidden_pos.x, agent->hidden_pos.y, agent->hidden_pos.z}, 0.2f, YELLOW);
+            render_pos.y = (i % 2 == 0) ? -0.6f : 0.6f;
+            render_pos.x = truck_x + 1.5f;
+            render_pos.z = 0.7f + agent->box_size / 2.0f; // On top of flatbed
+
+            DrawCube((Vector3){render_pos.x, render_pos.y, render_pos.z},
+                     agent->box_size, agent->box_size, agent->box_size, BROWN);
+
+            // Draw delivery points near houses
+            DrawCube((Vector3){agent->drop_pos.x, agent->drop_pos.y, agent->drop_pos.z},
+                     0.5f, 0.5f, 0.1f, YELLOW);
+            DrawSphere((Vector3){agent->hidden_pos.x, agent->hidden_pos.y, agent->hidden_pos.z},
+                       0.2f, YELLOW);
         }
     }
 
