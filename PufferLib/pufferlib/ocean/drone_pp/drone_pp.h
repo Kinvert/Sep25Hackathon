@@ -428,14 +428,18 @@ void set_target(DronePP* env, int idx) {
 float compute_reward(DronePP* env, Drone *agent, bool collision) {
     if (DEBUG > 2) printf("  Compute Reward\n");
     Vec3 tgt = agent->target_pos;
-    if (env->task == TASK_PP) tgt = agent->hidden_pos;
+    Vec3 tgt_vel = agent->target_vel;
+    if (env->task == TASK_PP) {
+        tgt = agent->hidden_pos;
+        tgt_vel = agent->hidden_vel;
+    }
 
     Vec3 pos_error = {agent->state.pos.x - tgt.x, agent->state.pos.y - tgt.y, agent->state.pos.z - tgt.z};
     float dist = sqrtf(pos_error.x * pos_error.x + pos_error.y * pos_error.y + pos_error.z * pos_error.z) + 0.00000001;
 
-    Vec3 vel_error = {agent->state.vel.x - agent->hidden_vel.x,
-                      agent->state.vel.y - agent->hidden_vel.y,
-                      agent->state.vel.z - agent->hidden_vel.z};
+    Vec3 vel_error = {agent->state.vel.x - tgt_vel.x,
+                      agent->state.vel.y - tgt_vel.y,
+                      agent->state.vel.z - tgt_vel.z};
     float vel_magnitude = sqrtf(vel_error.x * vel_error.x + vel_error.y * vel_error.y + vel_error.z * vel_error.z);
 
     float angular_vel_magnitude = sqrtf(agent->state.omega.x * agent->state.omega.x +
@@ -626,7 +630,7 @@ void c_reset(DronePP *env) {
     } else {
         env->task = rand() % (TASK_N - 1);
     }
-    env->task = TASK_PP;
+    //env->task = TASK_PP;
 
     for (int i = 0; i < env->num_agents; i++) {
         Drone *agent = &env->agents[i];
