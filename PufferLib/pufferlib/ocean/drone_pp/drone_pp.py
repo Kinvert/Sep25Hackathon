@@ -12,31 +12,30 @@ class DronePP(pufferlib.PufferEnv):
         max_rings=5,
 
         box_base_density=50.0,
-        box_k_growth=0.02,
+        box_k_growth=0.382745113745057,
 
-        dist_decay=0.15,
+        dist_decay=41.4607043293644,
 
-        grip_k_decay=0.09049941256843744,
-        grip_k_max=17.887758597919266,
+        grip_k_decay=3,
+        grip_k_max=13.176817276380092,
         grip_k_min=1.0,
 
-        pos_const=0.6233603728023545,
-        pos_penalty=0.03827543428980447,
+        pos_const=0.6139523971036905,
+        pos_penalty=0.0001,
 
-        reward_grip=0.5,
-        reward_ho_drop=0.25,
-        reward_hover=0.25,
+        reward_grip=0.7504388912014437,
+        reward_ho_drop=0.2621607720500283,
+        reward_hover=0.25189232876140244,
 
         reward_max_dist=65.0,
-        reward_min_dist=1.3159451723909112,
+        reward_min_dist=1.2574298048547647,
 
-        vel_penalty_clamp=0.25,
+        vel_penalty_clamp=0.45318093362341383,
 
-        w_approach=2.4493223157596984,
-        w_hover=1.6429730342663187,
-        w_position=1.2303854103933083,
-        w_stability=1.8328041440802467,
-        w_velocity=0.12632002850721588,
+        w_approach=2.5,
+        w_position=0.830661256270675,
+        w_stability=0.3268312145336416,
+        w_velocity=0.2300285842499415,
 
         render_mode=None,
         report_interval=1024,
@@ -96,7 +95,6 @@ class DronePP(pufferlib.PufferEnv):
                 vel_penalty_clamp=vel_penalty_clamp,
 
                 w_approach=w_approach,
-                w_hover=w_hover,
                 w_position=w_position,
                 w_stability=w_stability,
                 w_velocity=w_velocity

@@ -134,3 +134,64 @@
   - ======================
   - lyric-forest-50 gxjpowu9
     - 4195 real it's ok
+
+- pp18 better vel penalty with clamping
+  - major-fire-383 q92d8h3h 40000
+    - box_base_density: 50
+    - box_k_growth: 0.382745113745057
+    - dist_decay: 41.4607043293644
+    - grip_k_decay: 3
+    - grip_k_max: 13.176817276380092
+    - grip_k_min: 1
+    - max_rings: 10
+    - num_drones: 64
+    - num_envs: 24
+    - pos_const: 0.6139523971036905
+    - pos_penalty: 0.0001
+    - reward_grip: 0.7504388912014437
+    - reward_ho_drop: 0.2621607720500283
+    - reward_hover: 0.25189232876140244
+    - reward_max_dist: 65
+    - reward_min_dist: 1.2574298048547647
+    - vel_penalty_clamp: 0.45318093362341383
+    - w_approach: 2.5
+    - w_position: 0.830661256270675
+    - w_stability: 0.3268312145336416
+    - w_velocity: 0.2300285842499415
+    -
+    - adam_beta1: 0.9447721162246707
+    - adam_beta2: 0.9981486212852817
+    - adam_eps: 3.017550458839966e-07
+    - anneal_lr: "true"
+    - batch_size: auto
+    - bptt_horizon: 64
+    - checkpoint_interval: 200
+    - clip_coef: 0.3526717690896353
+    - compile: false
+    - compile_fullgraph: true
+    - compile_mode: max-autotune-no-cudagraphs
+    - cpu_offload: false
+    - data_dir: experiments
+    - device: cuda
+    - ent_coef: 0.022746615993432043
+    - gae_lambda: 0.995
+    - gamma: 0.9915404966826538
+    - learning_rate: 0.01000000000000001
+    - max_grad_norm: 2.5843397392403937
+    - max_minibatch_size: 65536
+    - minibatch_size: 32768
+    - name: pufferai
+    - optimizer: muon
+    - precision: float32
+    - prio_alpha: 0.712012072750674
+    - prio_beta0: 0.99
+    - project: ablations
+    - seed: 42
+    - torch_deterministic: true
+    - total_timesteps: 200000000
+    - update_epochs: 1
+    - use_rnn: true
+    - vf_clip_coef: 0.1
+    - vf_coef: 4.385961990267164
+    - vtrace_c_clip: 1.2065773508911912
+    - vtrace_rho_clip: 0.9726251246653761
