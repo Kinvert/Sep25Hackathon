@@ -2,6 +2,8 @@
 // Included in pufferlib under the original project's MIT license.
 // https://github.com/stmio/drone
 
+// Some changes made by Keith (Kinvert) for hackathon -> drone_delivery
+
 #include <float.h>
 #include <math.h>
 #include <stdbool.h>
