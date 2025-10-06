@@ -12,30 +12,30 @@ class DronePP(pufferlib.PufferEnv):
         max_rings=5,
 
         box_base_density=50.0,
-        box_k_growth=0.02,
+        box_k_growth=0.25,
 
-        dist_decay=0.15,
+        dist_decay=15.0,
 
-        grip_k_decay=0.09049941256843744,
-        grip_k_max=17.887758597919266,
+        grip_k_decay=5.0,
+        grip_k_max=17.105300970916993,
         grip_k_min=1.0,
 
-        pos_const=0.6233603728023545,
-        pos_penalty=0.03827543428980447,
+        pos_const=0.7108647198043252,
+        pos_penalty=0.0009629600280207475,
 
-        reward_grip=0.5,
-        reward_ho_drop=0.25,
-        reward_hover=0.25,
+        reward_grip=0.9999,
+        reward_ho_drop=0.20890470430909128,
+        reward_hover=0.1603521816569735,
 
         reward_max_dist=65.0,
-        reward_min_dist=1.3159451723909112,
+        reward_min_dist=0.9330297552248776,
 
         vel_penalty_clamp=0.25,
 
-        w_approach=2.4493223157596984,
-        w_position=1.2303854103933083,
-        w_stability=1.8328041440802467,
-        w_velocity=0.12632002850721588,
+        w_approach=2.2462377881752698,
+        w_position=0.7312628607193232,
+        w_stability=1.6094417286807845,
+        w_velocity=0.0009999999999999731,
 
         render_mode=None,
         report_interval=1024,

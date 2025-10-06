@@ -122,30 +122,30 @@ int main() {
     env->max_rings = 10;
 
     env->box_base_density = 50.0;
-    env->box_k_growth = 0.02;
+    env->box_k_growth = 0.25;
 
-    env->dist_decay = 0.5;
+    env->dist_decay = 15.0;
 
-    env->grip_k_decay = 0.09049941256843744;
-    env->grip_k_max = 17.887758597919266;
+    env->grip_k_decay = 5.0;
+    env->grip_k_max = 17.105300970916993;
     env->grip_k_min = 1.0;
 
-    env->pos_const = 0.6233603728023545;
-    env->pos_penalty = 0.03827543428980447;
+    env->pos_const = 0.7108647198043252;
+    env->pos_penalty = 0.0009629600280207475;
 
-    env->reward_grip = 0.5;
-    env->reward_ho_drop = 0.25;
-    env->reward_hover = 0.25;
+    env->reward_grip = 0.9999;
+    env->reward_ho_drop = 0.20890470430909128;
+    env->reward_hover = 0.1603521816569735;
 
     env->reward_max_dist = 65.0;
-    env->reward_min_dist = 1.3159451723909112;
+    env->reward_min_dist = 0.9330297552248776;
 
     env->vel_penalty_clamp = 0.25;
 
-    env->w_approach = 2.4493223157596984;
-    env->w_position = 1.2303854103933083;
-    env->w_stability = 1.8328041440802467;
-    env->w_velocity = 0.12632002850721588;
+    env->w_approach = 2.2462377881752698;
+    env->w_position = 0.7312628607193232;
+    env->w_stability = 1.6094417286807845;
+    env->w_velocity = 0.0009999999999999731;
 
     env->task = TASK_ORBIT;
     init(env);
