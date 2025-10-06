@@ -146,7 +146,6 @@ int main() {
     env->w_stability = 1.6094417286807845;
     env->w_velocity = 0.0009999999999999731;
 
-    env->task = TASK_ORBIT;
     init(env);
 
     size_t obs_size = 45;
