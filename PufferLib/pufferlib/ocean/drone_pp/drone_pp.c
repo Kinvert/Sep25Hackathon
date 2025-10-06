@@ -143,7 +143,6 @@ int main() {
     env->vel_penalty_clamp = 0.25;
 
     env->w_approach = 2.4493223157596984;
-    env->w_hover = 1.6429730342663187;
     env->w_position = 1.2303854103933083;
     env->w_stability = 1.8328041440802467;
     env->w_velocity = 0.12632002850721588;

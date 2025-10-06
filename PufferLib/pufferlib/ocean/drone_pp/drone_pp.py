@@ -33,7 +33,6 @@ class DronePP(pufferlib.PufferEnv):
         vel_penalty_clamp=0.25,
 
         w_approach=2.4493223157596984,
-        w_hover=1.6429730342663187,
         w_position=1.2303854103933083,
         w_stability=1.8328041440802467,
         w_velocity=0.12632002850721588,
@@ -96,7 +95,6 @@ class DronePP(pufferlib.PufferEnv):
                 vel_penalty_clamp=vel_penalty_clamp,
 
                 w_approach=w_approach,
-                w_hover=w_hover,
                 w_position=w_position,
                 w_stability=w_stability,
                 w_velocity=w_velocity

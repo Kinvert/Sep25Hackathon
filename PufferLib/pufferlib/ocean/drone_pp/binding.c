@@ -29,7 +29,6 @@ static int my_init(Env *env, PyObject *args, PyObject *kwargs) {
     env->vel_penalty_clamp = unpack(kwargs, "vel_penalty_clamp");
 
     env->w_approach = unpack(kwargs, "w_approach");
-    env->w_hover = unpack(kwargs, "w_hover");
     env->w_position = unpack(kwargs, "w_position");
     env->w_stability = unpack(kwargs, "w_stability");
     env->w_velocity = unpack(kwargs, "w_velocity");

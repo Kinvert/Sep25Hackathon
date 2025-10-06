@@ -115,7 +115,6 @@ typedef struct {
     float vel_penalty_clamp;
 
     float w_approach;
-    float w_hover;
     float w_position;
     float w_stability;
     float w_velocity;
