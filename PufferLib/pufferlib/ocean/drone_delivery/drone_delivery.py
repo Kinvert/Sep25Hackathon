@@ -9,7 +9,6 @@ class DroneDelivery(pufferlib.PufferEnv):
         self,
         num_envs=16,
         num_drones=64,
-        max_rings=5,
 
         box_base_density=50.0,
         box_k_growth=0.25,
@@ -71,7 +70,6 @@ class DroneDelivery(pufferlib.PufferEnv):
                 self.truncations[i*num_drones:(i+1)*num_drones],
                 i,
                 num_agents=num_drones,
-                max_rings=max_rings,
 
                 box_base_density=box_base_density,
                 box_k_growth=box_k_growth,
@@ -128,7 +126,7 @@ class DroneDelivery(pufferlib.PufferEnv):
         binding.vec_close(self.c_envs)
 
 def test_performance(timeout=10, atn_cache=1024):
-    env = DronePP(num_envs=1000)
+    env = DroneDelivery(num_envs=1000)
     env.reset()
     tick = 0
 

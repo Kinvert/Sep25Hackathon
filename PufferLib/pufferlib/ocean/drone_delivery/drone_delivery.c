@@ -84,7 +84,7 @@ void forward_linearcontlstm(LinearContLSTM *net, float *observations, float *act
     }
 }
 
-void generate_dummy_actions(DronePP *env) {
+void generate_dummy_actions(DroneDelivery *env) {
     // Generate random floats in [-1, 1] range
     env->actions[0] = ((float)rand() / (float)RAND_MAX) * 2.0f - 1.0f;
     env->actions[1] = ((float)rand() / (float)RAND_MAX) * 2.0f - 1.0f;
@@ -94,14 +94,14 @@ void generate_dummy_actions(DronePP *env) {
 
 #ifdef __EMSCRIPTEN__
 typedef struct {
-    DronePP *env;
+    DroneDelivery *env;
     LinearContLSTM *net;
     Weights *weights;
 } WebRenderArgs;
 
 void emscriptenStep(void *e) {
     WebRenderArgs *args = (WebRenderArgs *)e;
-    DronePP *env = args->env;
+    DroneDelivery *env = args->env;
     LinearContLSTM *net = args->net;
 
     forward_linearcontlstm(net, env->observations, env->actions);
@@ -114,12 +114,10 @@ WebRenderArgs *web_args = NULL;
 #endif
 
 int main() {
-    //srand(time(NULL)); // Seed random number generator
     srand(42); // Seed random number generator
 
-    DronePP *env = calloc(1, sizeof(DronePP));
+    DroneDelivery *env = calloc(1, sizeof(DroneDelivery));
     env->num_agents = 64;
-    env->max_rings = 10;
 
     env->box_base_density = 50.0;
     env->box_k_growth = 0.25;
@@ -147,7 +145,6 @@ int main() {
     env->w_stability = 1.6094417286807845;
     env->w_velocity = 0.0009999999999999731;
 
-    env->task = TASK_ORBIT;
     init(env);
 
     size_t obs_size = 45;
