@@ -119,7 +119,6 @@ int main() {
 
     DronePP *env = calloc(1, sizeof(DronePP));
     env->num_agents = 64;
-    env->max_rings = 10;
 
     env->box_base_density = 50.0;
     env->box_k_growth = 0.25;

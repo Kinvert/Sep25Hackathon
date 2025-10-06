@@ -20,15 +20,14 @@
 #define TASK_CUBE 4
 #define TASK_CONGO 5
 #define TASK_FLAG 6
-#define TASK_RACE 7
-#define TASK_PP 8
-#define TASK_N 9
+#define TASK_PP 7
+#define TASK_N 8
 
 #define DEBUG 0
 
 char* TASK_NAMES[TASK_N] = {
     "Idle", "Hover", "Orbit", "Follow",
-    "Cube", "Congo", "FLAG", "Race", "PP"
+    "Cube", "Congo", "FLAG", "PP"
 };
 
 #define R (Color){255, 0, 0, 255}
@@ -83,9 +82,6 @@ typedef struct {
     int num_agents;
     Drone* agents;
 
-    int max_rings;
-    Ring* ring_buffer;
-
     int debug;
 
     float box_base_density;
@@ -132,7 +128,6 @@ void init(DroneDelivery *env) {
     env->box_k_max = 1.0f;
     env->episode_gain = 0.0f;
     env->agents = calloc(env->num_agents, sizeof(Drone));
-    env->ring_buffer = calloc(env->max_rings, sizeof(Ring));
     env->log = (Log){0};
     env->tick = 0;
     env->episode_num = 0;
@@ -245,23 +240,7 @@ void compute_observations(DroneDelivery *env) {
             env->observations[idx++] = 0.0f;
         }
 
-        // Ring obs
-        if (env->task == TASK_RACE) {
-            Ring ring = env->ring_buffer[agent->ring_idx];
-            Vec3 to_ring = quat_rotate(q_inv, sub3(ring.pos, agent->state.pos));
-            Vec3 ring_norm = quat_rotate(q_inv, ring.normal);
-            env->observations[idx++] = to_ring.x * INV_GRID_X;
-            env->observations[idx++] = to_ring.y * INV_GRID_Y;
-            env->observations[idx++] = to_ring.z * INV_GRID_Z;
-            env->observations[idx++] = ring_norm.x;
-            env->observations[idx++] = ring_norm.y;
-            env->observations[idx++] = ring_norm.z;
-            env->observations[idx++] = 0.0f; // TASK_PP
-            env->observations[idx++] = 0.0f;
-            env->observations[idx++] = 0.0f;
-            env->observations[idx++] = 0.0f;
-
-        } else if (env->task == TASK_PP) {
+        if (env->task == TASK_PP) {
             Vec3 to_box = quat_rotate(q_inv, sub3(agent->box_pos, agent->state.pos));
             Vec3 to_drop = quat_rotate(q_inv, sub3(agent->drop_pos, agent->state.pos));
             env->observations[idx++] = to_box.x * INV_GRID_X;
@@ -385,12 +364,6 @@ void set_target_flag(DroneDelivery* env, int idx) {
     agent->target_vel = (Vec3){0.0f, 0.0f, 0.0f};
 }
 
-void set_target_race(DroneDelivery* env, int idx) {
-    Drone* agent = &env->agents[idx];
-    agent->target_pos = env->ring_buffer[agent->ring_idx].pos;
-    agent->target_vel = (Vec3){0.0f, 0.0f, 0.0f};
-}
-
 void set_target_pp(DroneDelivery* env, int idx) {
     Drone* agent = &env->agents[idx];
     if (!agent->gripping) {
@@ -417,8 +390,6 @@ void set_target(DroneDelivery* env, int idx) {
         set_target_congo(env, idx);
     } else if (env->task == TASK_FLAG) {
         set_target_flag(env, idx);
-    } else if (env->task == TASK_RACE) {
-        set_target_race(env, idx);
     } else if (env->task == TASK_PP) {
         set_target_pp(env, idx);
     }
@@ -549,7 +520,6 @@ void reset_agent(DroneDelivery* env, Drone *agent, int idx) {
     agent->episode_length = 0;
     agent->collisions = 0.0f;
     agent->score = 0.0f;
-    agent->ring_idx = 0;
     agent->perfect_grip = false;
     agent->perfect_deliveries = 0.0f;
     agent->perfect_deliv = false;
@@ -577,7 +547,8 @@ void reset_agent(DroneDelivery* env, Drone *agent, int idx) {
         reset_pp(env, agent, idx);
     }
 
-    compute_reward(env, agent, env->task != TASK_RACE);
+    bool watch_for_collisions = true;
+    compute_reward(env, agent, watch_for_collisions);
 }
 
 void random_bump(Drone* agent) {
@@ -632,27 +603,6 @@ void c_reset(DroneDelivery *env) {
         reset_agent(env, agent, i);
         set_target(env, i);
     }
-
-    for (int i = 0; i < env->max_rings; i++) {
-        Ring *ring = &env->ring_buffer[i];
-        *ring = (Ring){0};
-    }
-    if (env->task == TASK_RACE) {
-        float ring_radius = 2.0f;
-        reset_rings(env->ring_buffer, env->max_rings, ring_radius);
-
-        // start drone at least MARGIN away from the first ring
-        for (int i = 0; i < env->num_agents; i++) {
-            Drone *drone = &env->agents[i];
-            do {
-                drone->state.pos = (Vec3){
-                    rndf(-MARGIN_X, MARGIN_X), 
-                    rndf(-MARGIN_Y, MARGIN_Y), 
-                    rndf(-MARGIN_Z, MARGIN_Z)
-                };
-            } while (norm3(sub3(drone->state.pos, env->ring_buffer[0].pos)) < 2.0f*ring_radius);
-        }
-    }
  
     compute_observations(env);
 }
@@ -677,21 +627,7 @@ void c_step(DroneDelivery *env) {
         if (!(env->task == TASK_PP)) move_target(env, agent);
 
         float reward = 0.0f;
-        if (env->task == TASK_RACE) {
-            Ring *ring = &env->ring_buffer[agent->ring_idx];
-            reward = compute_reward(env, agent, true);
-            float passed_ring = check_ring(agent, ring);
-            if (passed_ring > 0) {
-                agent->ring_idx = (agent->ring_idx + 1) % env->max_rings;
-                env->log.rings_passed += 1.0f;
-                set_target(env, i);
-                compute_reward(env, agent, true);
-            }
-            reward += passed_ring;
-        // =========================================================================================================================================
-        // =========================================================================================================================================
-        // =========================================================================================================================================
-        } else if (env->task == TASK_PP) {
+        if (env->task == TASK_PP) {
             int db_tick_perfect_grip = -1;
             float db_grip_k_at_grip = -1.0f;
             float db_box_x_at_grip = -1.0f;
@@ -1015,25 +951,6 @@ const Color PUFF_CYAN = (Color){0, 187, 187, 255};
 const Color PUFF_WHITE = (Color){241, 241, 241, 241};
 const Color PUFF_BACKGROUND = (Color){6, 24, 24, 255};
 
-void DrawRing3D(Ring ring, float thickness, Color entryColor, Color exitColor) {
-    float half_thick = thickness / 2.0f;
-
-    Vector3 center_pos = {ring.pos.x, ring.pos.y, ring.pos.z};
-
-    Vector3 entry_start_pos = {center_pos.x - half_thick * ring.normal.x,
-                               center_pos.y - half_thick * ring.normal.y,
-                               center_pos.z - half_thick * ring.normal.z};
-
-    DrawCylinderWiresEx(entry_start_pos, center_pos, ring.radius, ring.radius, 32, entryColor);
-
-    Vector3 exit_end_pos = {center_pos.x + half_thick * ring.normal.x,
-                            center_pos.y + half_thick * ring.normal.y,
-                            center_pos.z + half_thick * ring.normal.z};
-
-    DrawCylinderWiresEx(center_pos, exit_end_pos, ring.radius, ring.radius, 32, exitColor);
-}
-
-
 void c_render(DroneDelivery *env) {
     if (env->client == NULL) {
         env->client = make_client(env);
@@ -1062,10 +979,6 @@ void c_render(DroneDelivery *env) {
         env->task = (env->task + 1) % TASK_N;
         for (int i = 0; i < env->num_agents; i++) {
             set_target(env, i);
-        }
-        if (env->task == TASK_RACE) {
-            float ring_radius = 2.0f;
-            reset_rings(env->ring_buffer, env->max_rings, ring_radius);
         }
     }
 
@@ -1162,15 +1075,6 @@ void c_render(DroneDelivery *env) {
                        trail_color);
         }
 
-    }
-
-    // Rings
-    if (env->task == TASK_RACE) {
-        float ring_thickness = 0.2f;
-        for (int i = 0; i < env->max_rings; i++) {
-            Ring ring = env->ring_buffer[i];
-            DrawRing3D(ring, ring_thickness, GREEN, BLUE);
-        }
     }
 
     if (env->task == TASK_PP) {

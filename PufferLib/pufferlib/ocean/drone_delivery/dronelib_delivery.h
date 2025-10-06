@@ -58,7 +58,6 @@ typedef struct Log Log;
 struct Log {
     float episode_return;
     float episode_length;
-    float rings_passed;
     float collision_rate;
     float oob;
     float timeout;
@@ -178,30 +177,6 @@ Quat rndquat() {
 }
 
 typedef struct {
-    Vec3 pos;
-    Quat orientation;
-    Vec3 normal;
-    float radius;
-} Ring;
-
-Ring rndring(float radius) {
-    Ring ring;
-
-    ring.pos.x = rndf(-GRID_X + 2*radius, GRID_X - 2*radius);
-    ring.pos.y = rndf(-GRID_Y + 2*radius, GRID_Y - 2*radius);
-    ring.pos.z = rndf(-GRID_Z + 2*radius, GRID_Z - 2*radius);
-
-    ring.orientation = rndquat();
-
-    Vec3 base_normal = {0.0f, 0.0f, 1.0f};
-    ring.normal = quat_rotate(ring.orientation, base_normal);
-
-    ring.radius = radius;
-
-    return ring;
-}
-
-typedef struct {
     Vec3 pos[TRAIL_LENGTH];
     int index;
     int count;
@@ -251,7 +226,7 @@ typedef struct {
     State state;
     Params params;
 
-    // helpers for ring/swarm logic
+    // helpers for swarm logic
     Vec3 spawn_pos;
     Vec3 prev_pos;
     Vec3 target_pos;
@@ -288,7 +263,6 @@ typedef struct {
     float collisions;
     int episode_length;
     float score;
-    int ring_idx;
     float jitter;
 
     float base_mass;
@@ -519,44 +493,4 @@ void move_drone(Drone* drone, float* actions) {
     // clamp and normalise for observations
     clamp3(&drone->state.vel, -drone->params.max_vel, drone->params.max_vel);
     clamp3(&drone->state.omega, -drone->params.max_omega, drone->params.max_omega);
-}
-
-void reset_rings(Ring* ring_buffer, int num_rings, float ring_radius) {
-    ring_buffer[0] = rndring(ring_radius);
-    
-    // ensure rings are spaced at least 2*ring_radius apart
-    for (int i = 1; i < num_rings; i++) {
-        do {
-            ring_buffer[i] = rndring(ring_radius);
-        }  while (norm3(sub3(ring_buffer[i].pos, ring_buffer[i - 1].pos)) < 2.0f*ring_radius);
-    }   
-}
-
-float check_ring(Drone* drone, Ring* ring) {
-    // previous dot product negative if on the 'entry' side of the ring's plane
-    float prev_dot = dot3(sub3(drone->prev_pos, ring->pos), ring->normal);
-
-    // new dot product positive if on the 'exit' side of the ring's plane
-    float new_dot = dot3(sub3(drone->state.pos, ring->pos), ring->normal);
-
-    bool valid_dir = (prev_dot < 0.0f && new_dot > 0.0f);
-    bool invalid_dir = (prev_dot > 0.0f && new_dot < 0.0f);
-
-    // if we have crossed the plane of the ring
-    if (valid_dir || invalid_dir) {
-        // find intesection with ring's plane
-        Vec3 dir = sub3(drone->state.pos, drone->prev_pos);
-        float t = -prev_dot / dot3(ring->normal, dir); // possible nan
-
-        Vec3 intersection = add3(drone->prev_pos, scalmul3(dir, t));
-        float dist = norm3(sub3(intersection, ring->pos));
-
-        // reward or terminate based on distance to ring center
-        if (dist < (ring->radius - 0.5) && valid_dir) {
-            return 1.0f;
-        } else if (dist < ring->radius + 0.5) {
-            return -0.0f;
-        }
-    }
-    return 0.0f;
 }
