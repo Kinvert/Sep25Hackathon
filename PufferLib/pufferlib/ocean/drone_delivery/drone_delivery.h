@@ -570,7 +570,7 @@ void c_step(DroneDelivery *env) {
                         agent->perfect_now = true;
                         agent->color = (Color){0, 255, 0, 255}; // Green
                     }
-                    reset_pp(env, agent, i);
+                    reset_delivery(env, agent, i);
                 }
             }
         }

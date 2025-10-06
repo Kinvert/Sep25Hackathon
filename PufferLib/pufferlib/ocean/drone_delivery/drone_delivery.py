@@ -126,7 +126,7 @@ class DroneDelivery(pufferlib.PufferEnv):
         binding.vec_close(self.c_envs)
 
 def test_performance(timeout=10, atn_cache=1024):
-    env = DronePP(num_envs=1000)
+    env = DroneDelivery(num_envs=1000)
     env.reset()
     tick = 0
 
