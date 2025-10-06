@@ -114,7 +114,6 @@ WebRenderArgs *web_args = NULL;
 #endif
 
 int main() {
-    //srand(time(NULL)); // Seed random number generator
     srand(42); // Seed random number generator
 
     DroneDelivery *env = calloc(1, sizeof(DroneDelivery));
