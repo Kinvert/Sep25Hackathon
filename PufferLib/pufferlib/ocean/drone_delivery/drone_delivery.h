@@ -11,7 +11,7 @@
 #include <time.h>
 
 #include "raylib.h"
-#include "dronelib.h"
+#include "dronelib_delivery.h"
 
 #define TASK_IDLE 0
 #define TASK_HOVER 1
@@ -123,9 +123,9 @@ typedef struct {
     float episode_gain;
 
     Client *client;
-} DronePP;
+} DroneDelivery;
 
-void init(DronePP *env) {
+void init(DroneDelivery *env) {
     env->render = false;
     env->box_k = 0.001f;
     env->box_k_min = 0.001f;
@@ -138,7 +138,7 @@ void init(DronePP *env) {
     env->episode_num = 0;
 }
 
-void add_log(DronePP *env, int idx, bool oob) {
+void add_log(DroneDelivery *env, int idx, bool oob) {
     Drone *agent = &env->agents[idx];
     env->log.score += agent->score;
     env->log.episode_return += agent->episode_return;
@@ -154,7 +154,7 @@ void add_log(DronePP *env, int idx, bool oob) {
     agent->episode_return = 0.0f;
 }
 
-Drone* nearest_drone(DronePP* env, Drone *agent) {
+Drone* nearest_drone(DroneDelivery* env, Drone *agent) {
     float min_dist = 999999.0f;
     Drone *nearest = NULL;
     for (int i = 0; i < env->num_agents; i++) {
@@ -178,7 +178,7 @@ Drone* nearest_drone(DronePP* env, Drone *agent) {
     return nearest;
 }
 
-void compute_observations(DronePP *env) {
+void compute_observations(DroneDelivery *env) {
     int idx = 0;
     for (int i = 0; i < env->num_agents; i++) {
         Drone *agent = &env->agents[i];
@@ -293,7 +293,7 @@ void compute_observations(DronePP *env) {
     }
 }
 
-void move_target(DronePP* env, Drone *agent) {
+void move_target(DroneDelivery* env, Drone *agent) {
     agent->target_pos.x += agent->target_vel.x;
     agent->target_pos.y += agent->target_vel.y;
     agent->target_pos.z += agent->target_vel.z;
@@ -310,19 +310,19 @@ void move_target(DronePP* env, Drone *agent) {
     agent->hidden_vel = agent->target_vel;
 }
 
-void set_target_idle(DronePP* env, int idx) {
+void set_target_idle(DroneDelivery* env, int idx) {
     Drone *agent = &env->agents[idx];
     agent->target_pos = (Vec3){rndf(-MARGIN_X, MARGIN_X), rndf(-MARGIN_Y, MARGIN_Y), rndf(-MARGIN_Z, MARGIN_Z)};
     agent->target_vel = (Vec3){rndf(-V_TARGET, V_TARGET), rndf(-V_TARGET, V_TARGET), rndf(-V_TARGET, V_TARGET)};
 }
 
-void set_target_hover(DronePP* env, int idx) {
+void set_target_hover(DroneDelivery* env, int idx) {
     Drone *agent = &env->agents[idx];
     agent->target_pos = agent->state.pos;
     agent->target_vel = (Vec3){0.0f, 0.0f, 0.0f};
 }
 
-void set_target_orbit(DronePP* env, int idx) {
+void set_target_orbit(DroneDelivery* env, int idx) {
     // Fibbonacci sphere algorithm
     float R = 8.0f;
     float phi = PI * (sqrt(5.0f) - 1.0f);
@@ -339,7 +339,7 @@ void set_target_orbit(DronePP* env, int idx) {
     agent->target_vel = (Vec3){0.0f, 0.0f, 0.0f};
 }
 
-void set_target_follow(DronePP* env, int idx) {
+void set_target_follow(DroneDelivery* env, int idx) {
     Drone* agent = &env->agents[idx];
     if (idx == 0) {
         set_target_idle(env, idx);
@@ -349,7 +349,7 @@ void set_target_follow(DronePP* env, int idx) {
     }
 }
 
-void set_target_cube(DronePP* env, int idx) {
+void set_target_cube(DroneDelivery* env, int idx) {
     Drone* agent = &env->agents[idx];
     float z = idx / 16;
     idx = idx % 16;
@@ -359,7 +359,7 @@ void set_target_cube(DronePP* env, int idx) {
     agent->target_vel = (Vec3){0.0f, 0.0f, 0.0f};
 }
 
-void set_target_congo(DronePP* env, int idx) {
+void set_target_congo(DroneDelivery* env, int idx) {
     if (idx == 0) {
         set_target_idle(env, idx);
         return;
@@ -375,7 +375,7 @@ void set_target_congo(DronePP* env, int idx) {
     }
 }
 
-void set_target_flag(DronePP* env, int idx) {
+void set_target_flag(DroneDelivery* env, int idx) {
     Drone* agent = &env->agents[idx];
     float x = (float)(idx % 8);
     float y = (float)(idx / 8);
@@ -385,13 +385,13 @@ void set_target_flag(DronePP* env, int idx) {
     agent->target_vel = (Vec3){0.0f, 0.0f, 0.0f};
 }
 
-void set_target_race(DronePP* env, int idx) {
+void set_target_race(DroneDelivery* env, int idx) {
     Drone* agent = &env->agents[idx];
     agent->target_pos = env->ring_buffer[agent->ring_idx].pos;
     agent->target_vel = (Vec3){0.0f, 0.0f, 0.0f};
 }
 
-void set_target_pp(DronePP* env, int idx) {
+void set_target_pp(DroneDelivery* env, int idx) {
     Drone* agent = &env->agents[idx];
     if (!agent->gripping) {
         agent->target_pos = (Vec3){agent->box_pos.x, agent->box_pos.y, agent->box_pos.z};
@@ -402,7 +402,7 @@ void set_target_pp(DronePP* env, int idx) {
     }
 }
 
-void set_target(DronePP* env, int idx) {
+void set_target(DroneDelivery* env, int idx) {
     if (env->task == TASK_IDLE) {
         set_target_idle(env, idx);
     } else if (env->task == TASK_HOVER) {
@@ -424,7 +424,7 @@ void set_target(DronePP* env, int idx) {
     }
 }
 
-float compute_reward(DronePP* env, Drone *agent, bool collision) {
+float compute_reward(DroneDelivery* env, Drone *agent, bool collision) {
     if (DEBUG > 2) printf("  Compute Reward\n");
     Vec3 tgt = agent->target_pos;
     if (env->task == TASK_PP) tgt = agent->hidden_pos;
@@ -507,7 +507,7 @@ float compute_reward(DronePP* env, Drone *agent, bool collision) {
     return delta_reward;
 }
 
-void reset_pp(DronePP* env, Drone *agent, int idx) {
+void reset_pp(DroneDelivery* env, Drone *agent, int idx) {
     agent->box_pos = (Vec3){rndf(-MARGIN_X, MARGIN_X), rndf(-MARGIN_Y, MARGIN_Y), rndf(-GRID_Z + 0.5f, -GRID_Z + 3.0f)};
     agent->drop_pos = (Vec3){rndf(-MARGIN_X, MARGIN_X), rndf(-MARGIN_Y, MARGIN_Y), -GRID_Z + 0.5f};
     agent->box_vel = (Vec3){0.0f, 0.0f, 0.0f};
@@ -544,7 +544,7 @@ void reset_pp(DronePP* env, Drone *agent, int idx) {
     agent->base_b_drag = agent->params.b_drag;
 }
 
-void reset_agent(DronePP* env, Drone *agent, int idx) {
+void reset_agent(DroneDelivery* env, Drone *agent, int idx) {
     agent->episode_return = 0.0f;
     agent->episode_length = 0;
     agent->collisions = 0.0f;
@@ -614,7 +614,7 @@ void update_gripping_physics(Drone* agent) {
     }
 }
 
-void c_reset(DronePP *env) {
+void c_reset(DroneDelivery *env) {
     env->tick = 0;
     env->episode_num += 1;
     if (env->episode_num > 1) env->episode_gain = clampf(env->episode_gain + EPISODE_GAIN_INCREMENT, 0.0f, 1.0f);
@@ -657,7 +657,7 @@ void c_reset(DronePP *env) {
     compute_observations(env);
 }
 
-void c_step(DronePP *env) {
+void c_step(DroneDelivery *env) {
     env->tick = (env->tick + 1) % HORIZON;
     //env->log.dist = 0.0f;
     //env->log.dist100 = 0.0f;
@@ -909,7 +909,7 @@ void c_close_client(Client *client) {
     free(client);
 }
 
-void c_close(DronePP *env) {
+void c_close(DroneDelivery *env) {
     if (env->client != NULL) {
         c_close_client(env->client);
     }
@@ -965,14 +965,14 @@ void handle_camera_controls(Client *client) {
     }
 }
 
-Client *make_client(DronePP *env) {
+Client *make_client(DroneDelivery *env) {
     Client *client = (Client *)calloc(1, sizeof(Client));
 
     client->width = WIDTH;
     client->height = HEIGHT;
 
     SetConfigFlags(FLAG_MSAA_4X_HINT); // antialiasing
-    InitWindow(WIDTH, HEIGHT, "PufferLib DronePP");
+    InitWindow(WIDTH, HEIGHT, "PufferLib DroneDelivery");
 
 #ifndef __EMSCRIPTEN__
     SetTargetFPS(60);
@@ -1034,7 +1034,7 @@ void DrawRing3D(Ring ring, float thickness, Color entryColor, Color exitColor) {
 }
 
 
-void c_render(DronePP *env) {
+void c_render(DroneDelivery *env) {
     if (env->client == NULL) {
         env->client = make_client(env);
         if (env->client == NULL) {

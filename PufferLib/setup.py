@@ -190,7 +190,7 @@ extension_kwargs = dict(
 c_extensions = []
 if not NO_OCEAN:
     # Only build drone_pickplace
-    c_extension_paths = ['pufferlib/ocean/drone_pp/binding.c']
+    c_extension_paths = ['pufferlib/ocean/drone_delivery/binding.c']
     c_extensions = [
         Extension(
             path.rstrip('.c').replace('/', '.'),

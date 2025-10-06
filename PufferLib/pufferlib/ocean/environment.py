@@ -131,7 +131,7 @@ MAKE_FUNCTIONS = {
     'matsci': 'Matsci',
     'memory': 'Memory',
     'boids': 'Boids',
-    'drone_pp': 'DronePP',
+    'drone_delivery': 'DroneDelivery',
     'drone_race': 'DroneRace',
     'drone_swarm': 'DroneSwarm',
     'nmmo3': 'NMMO3',

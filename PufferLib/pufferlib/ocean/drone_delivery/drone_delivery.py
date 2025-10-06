@@ -2,9 +2,9 @@ import numpy as np
 import gymnasium
 
 import pufferlib
-from pufferlib.ocean.drone_pp import binding
+from pufferlib.ocean.drone_delivery import binding
 
-class DronePP(pufferlib.PufferEnv):
+class DroneDelivery(pufferlib.PufferEnv):
     def __init__(
         self,
         num_envs=16,
